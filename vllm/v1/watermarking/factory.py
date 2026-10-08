@@ -6,6 +6,7 @@ from vllm.v1.watermarking.gumbel import (
     DualKeyGumbelWatermarker,
     GumbelWatermarker,
 )
+from vllm.v1.watermarking.lookahead import LookaheadGumbelWatermarker
 from vllm.v1.watermarking.multibit_red_green import MultibitRedGreenWatermarker
 from vllm.v1.watermarking.red_green import RedGreenWatermarker
 from vllm.v1.watermarking.watermarker import Watermarker
@@ -39,5 +40,13 @@ def create_watermarker(config: WatermarkConfig) -> Watermarker:
             message=config.message,
             message_bits=config.message_bits,
             **delta,
+        )
+    if config.algorithm == "lookahead_gumbel":
+        return LookaheadGumbelWatermarker(
+            config.key,
+            config.context_width,
+            config.prf,
+            config.aggregator,
+            config.aggregator_lambda,
         )
     raise ValueError(f"Unknown watermarking algorithm: {config.algorithm}")

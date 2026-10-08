@@ -49,6 +49,8 @@ WATERMARK_CONFIG_FIELDS = (
     "gamma",
     "message",
     "message_bits",
+    "aggregator",
+    "aggregator_lambda",
     "context_width",
     "deduplicate_contexts",
     "deduplicate_contexts_max_history",
@@ -210,6 +212,8 @@ DETECTOR_FACTORIES = {
     "dual_key_gumbel": _create_dual_key_gumbel_detector,
     "red_green": _create_red_green_detector,
     "multibit_red_green": _create_multibit_red_green_detector,
+    # Without speculation lookahead Gumbel-max samples like Gumbel-max.
+    "lookahead_gumbel": _create_gumbel_detector,
 }
 
 
@@ -729,6 +733,9 @@ WATERMARKING_CANDIDATES = (
         delta=1.0,
         message=0b1011,
         message_bits=4,
+    ),
+    _candidate(
+        "lookahead-gumbel-philox-key42-cw4", "lookahead_gumbel", 42, prf="philox"
     ),
 )
 

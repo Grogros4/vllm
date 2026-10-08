@@ -13,8 +13,9 @@ from vllm.logger import init_logger
 logger = init_logger(__name__)
 
 WatermarkingAlgorithm = Literal[
-    "gumbel", "dual_key_gumbel", "red_green", "multibit_red_green"
+    "gumbel", "dual_key_gumbel", "red_green", "multibit_red_green", "lookahead_gumbel"
 ]
+LookaheadAggregator = Literal["pi1", "pi2", "max", "tsum", "min", "lin", "expsum"]
 WatermarkPRFName = Literal["philox"]
 WatermarkContextScope = Literal["none", "single_turn", "all"]
 
@@ -48,6 +49,13 @@ class WatermarkConfig:
     integer of `message_bits` bits."""
     message_bits: int = Field(default=16, ge=1, le=24)
     """Number of message bits embedded by multi-bit red-green watermarking."""
+    aggregator: LookaheadAggregator = "tsum"
+    """How lookahead Gumbel-max combines a drafted token's own Gumbel with the
+    race value of the row below it: `pi1` is plain Gumbel-max, `pi2` takes the
+    child's value, `max`, `tsum`, `min`, `lin` and `expsum` mix both while
+    keeping the result a standard Gumbel."""
+    aggregator_lambda: float = Field(default=1.0, gt=0)
+    """Weight of the child's value in the `lin` lookahead aggregator."""
     context_width: int = Field(default=4, ge=1)
     """Number of prior tokens used by the watermark PRF."""
     deduplicate_contexts: WatermarkContextScope = "single_turn"
@@ -68,7 +76,7 @@ class WatermarkConfig:
 
     @property
     def supports_speculative_decoding(self) -> bool:
-        return self.algorithm == "dual_key_gumbel"
+        return self.algorithm in ("dual_key_gumbel", "lookahead_gumbel")
 
     @model_validator(mode="after")
     def validate_watermark_settings(self) -> Self:
@@ -80,7 +88,7 @@ class WatermarkConfig:
             self.deduplicate_contexts_max_history is not None
             and self.deduplicate_contexts_max_history < _MIN_RECOMMENDED_DEDUP_HISTORY
         )
-        if self.algorithm in ("gumbel", "dual_key_gumbel") and (
+        if self.algorithm in ("gumbel", "dual_key_gumbel", "lookahead_gumbel") and (
             self.deduplicate_contexts == "none" or history_is_too_short
         ):
             logger.warning_once(

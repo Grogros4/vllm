@@ -12,7 +12,7 @@ from vllm.triton_utils import tl, triton
 from vllm.v1.outputs import LogprobsTensors
 from vllm.v1.spec_decode.utils import unconditional_to_conditional_rates
 from vllm.v1.watermarking.gpu_sampler import GPUWatermarkSampler
-from vllm.v1.watermarking.red_green import RedGreenWatermarker
+from vllm.v1.watermarking.watermarker import SupportsVerificationLogits
 from vllm.v1.worker.gpu.input_batch import (
     InputBatch,
     get_num_sampled_and_rejected,
@@ -268,16 +268,17 @@ class RejectionSampler:
         )
         verification_logits = processed_logits
         if isinstance(self.sampler, GPUWatermarkSampler) and isinstance(
-            self.sampler.watermarker, RedGreenWatermarker
+            self.sampler.watermarker, SupportsVerificationLogits
         ):
-            # The red-green watermark is a change of distribution: verifying
-            # against it makes every emitted token follow it. Processed
-            # logprobs keep the logits before it, as without speculation.
+            # The watermark decides what the drafts are verified against.
+            # Processed logprobs keep the logits before it, as without
+            # speculation.
             verification_logits = self.sampler.watermark_verification_logits(
                 processed_logits,
                 expanded_idx_mapping,
                 expanded_local_pos,
                 draft_sampled,
+                cu_num_logits,
             )
         sampled, num_sampled = rejection_sample(
             verification_logits,

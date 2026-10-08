@@ -10,6 +10,7 @@ from vllm.v1.watermarking.gumbel import (
     GumbelWatermarkDetector,
     GumbelWatermarker,
 )
+from vllm.v1.watermarking.lookahead import LookaheadGumbelWatermarker
 from vllm.v1.watermarking.multibit_red_green import (
     MultibitRedGreenWatermarkDetector,
     MultibitRedGreenWatermarker,
@@ -26,6 +27,7 @@ from vllm.v1.watermarking.red_green import (
 )
 from vllm.v1.watermarking.watermarker import (
     SupportsSpeculativeDecoding,
+    SupportsVerificationLogits,
     Watermarker,
     WatermarkSample,
 )
@@ -38,10 +40,12 @@ __all__ = [
     "MultibitRedGreenWatermarkDetector",
     "MultibitRedGreenWatermarker",
     "MultibitWatermarkDetection",
+    "LookaheadGumbelWatermarker",
     "PhiloxPRF",
     "RedGreenWatermarkDetector",
     "RedGreenWatermarker",
     "SupportsSpeculativeDecoding",
+    "SupportsVerificationLogits",
     "WatermarkDetection",
     "WatermarkDetector",
     "WatermarkPRF",

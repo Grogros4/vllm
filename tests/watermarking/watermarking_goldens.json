@@ -121,6 +121,8 @@
           "type": "DualKeyGumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "dual_key_gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.0,
@@ -263,6 +265,8 @@
           "type": "DualKeyGumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "dual_key_gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -405,6 +409,8 @@
           "type": "DualKeyGumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "dual_key_gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.5,
@@ -547,6 +553,8 @@
           "type": "DualKeyGumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "dual_key_gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -633,6 +641,8 @@
           "type": "DualKeyGumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "dual_key_gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -775,6 +785,8 @@
           "type": "DualKeyGumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "dual_key_gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 1.0,
@@ -917,6 +929,8 @@
           "type": "DualKeyGumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "dual_key_gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.4,
@@ -1043,6 +1057,8 @@
           "type": "DualKeyGumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "dual_key_gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -1169,6 +1185,8 @@
           "type": "DualKeyGumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "dual_key_gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -1311,6 +1329,8 @@
           "type": "GumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -1453,6 +1473,8 @@
           "type": "GumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -1595,6 +1617,8 @@
           "type": "GumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -1737,6 +1761,8 @@
           "type": "GumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -1885,6 +1911,8 @@
           "type": "GumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -2027,6 +2055,8 @@
           "type": "GumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -2169,6 +2199,8 @@
           "type": "GumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -2311,6 +2343,8 @@
           "type": "GumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -2453,6 +2487,8 @@
           "type": "GumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -2539,6 +2575,8 @@
           "type": "GumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -2681,6 +2719,8 @@
           "type": "GumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -2823,6 +2863,8 @@
           "type": "GumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -2949,6 +2991,8 @@
           "type": "GumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -3075,6 +3119,8 @@
           "type": "GumbelWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "gumbel",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -3093,6 +3139,150 @@
         "key_b_effective": null,
         "key_b_routed": null,
         "partial_context_skips": 4,
+        "routing_draws": 0
+      }
+    },
+    "lookahead-gumbel-philox-key42-cw4": {
+      "configuration": {
+        "detection_key": "42",
+        "fixture": {
+          "dominant_bias": 0,
+          "dominant_token": null,
+          "logit_denominator": 16,
+          "logit_modulus": 131,
+          "num_tokens": 64,
+          "prompt": [],
+          "vocabulary_size": 128
+        },
+        "key": "42",
+        "prf": "philox",
+        "prf_version": "philox4x32-10-v1",
+        "scheme": "lookahead_gumbel",
+        "scheme_config": {
+          "context_width": 4,
+          "delta": 2.0,
+          "detection_alpha": 0.1,
+          "detection_deduplicate_contexts": true,
+          "gamma": 0.25,
+          "generation_alpha": 0.1,
+          "generation_deduplicate_contexts": "single_turn",
+          "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
+          "p_value_threshold": 0.01
+        }
+      },
+      "detection": {
+        "is_watermarked": true,
+        "message": null,
+        "num_scored_tokens": 64,
+        "p_value": 7.128196280874065e-61,
+        "p_value_ratio": 7.128196280874065e-59,
+        "score": 296.27295787856264
+      },
+      "generation": [
+        46,
+        24,
+        45,
+        80,
+        14,
+        26,
+        22,
+        124,
+        21,
+        45,
+        16,
+        30,
+        5,
+        89,
+        0,
+        10,
+        27,
+        70,
+        80,
+        62,
+        1,
+        11,
+        117,
+        53,
+        10,
+        45,
+        94,
+        37,
+        43,
+        22,
+        78,
+        49,
+        119,
+        9,
+        22,
+        118,
+        82,
+        75,
+        32,
+        24,
+        84,
+        27,
+        122,
+        66,
+        78,
+        64,
+        124,
+        17,
+        91,
+        12,
+        51,
+        15,
+        75,
+        64,
+        127,
+        45,
+        112,
+        15,
+        83,
+        114,
+        121,
+        109,
+        24,
+        77
+      ],
+      "resolved": {
+        "derived_keys": {
+          "key_a": null,
+          "key_b": null
+        },
+        "detector": {
+          "alpha": null,
+          "context_width": 4,
+          "deduplicate_contexts": true,
+          "gamma": null,
+          "key_b_prf_key": null,
+          "message_bits": null,
+          "p_value_threshold": 0.01,
+          "prf_key": "42",
+          "type": "GumbelWatermarkDetector"
+        },
+        "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
+          "algorithm": "lookahead_gumbel",
+          "allow_target_only_watermarking": false,
+          "alpha": 0.1,
+          "context_width": 4,
+          "deduplicate_contexts": "single_turn",
+          "deduplicate_contexts_max_history": 8192,
+          "delta": 2.0,
+          "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
+          "prf": "philox"
+        }
+      },
+      "trace": {
+        "dedup_skips": 0,
+        "key_b_effective": null,
+        "key_b_routed": null,
+        "partial_context_skips": 0,
         "routing_draws": 0
       }
     },
@@ -3217,6 +3407,8 @@
           "type": "MultibitRedGreenWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "multibit_red_green",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -3359,6 +3551,8 @@
           "type": "MultibitRedGreenWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "multibit_red_green",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -3501,6 +3695,8 @@
           "type": "MultibitRedGreenWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "multibit_red_green",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -3643,6 +3839,8 @@
           "type": "RedGreenWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "red_green",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -3785,6 +3983,8 @@
           "type": "RedGreenWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "red_green",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
@@ -3927,6 +4127,8 @@
           "type": "RedGreenWatermarkDetector"
         },
         "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
           "algorithm": "red_green",
           "allow_target_only_watermarking": false,
           "alpha": 0.1,
