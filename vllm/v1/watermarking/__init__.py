@@ -2,6 +2,8 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
 from vllm.config.watermarking import derive_watermark_key
+from vllm.v1.watermarking.binomial import BinomialScoreWatermarkDetector
+from vllm.v1.watermarking.chi_squared import ChiSquaredWatermarker
 from vllm.v1.watermarking.detector import WatermarkDetection, WatermarkDetector
 from vllm.v1.watermarking.factory import create_watermarker
 from vllm.v1.watermarking.gumbel import (
@@ -16,6 +18,7 @@ from vllm.v1.watermarking.multibit_red_green import (
     MultibitRedGreenWatermarker,
     MultibitWatermarkDetection,
 )
+from vllm.v1.watermarking.perplexity import PPLHardWatermarker, PPLSoftWatermarker
 from vllm.v1.watermarking.prfs import (
     PhiloxPRF,
     WatermarkPRF,
@@ -33,6 +36,8 @@ from vllm.v1.watermarking.watermarker import (
 )
 
 __all__ = [
+    "BinomialScoreWatermarkDetector",
+    "ChiSquaredWatermarker",
     "DualKeyGumbelWatermarkDetector",
     "DualKeyGumbelWatermarker",
     "GumbelWatermarkDetector",
@@ -41,6 +46,8 @@ __all__ = [
     "MultibitRedGreenWatermarker",
     "MultibitWatermarkDetection",
     "LookaheadGumbelWatermarker",
+    "PPLHardWatermarker",
+    "PPLSoftWatermarker",
     "PhiloxPRF",
     "RedGreenWatermarkDetector",
     "RedGreenWatermarker",

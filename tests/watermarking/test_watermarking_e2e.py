@@ -6,6 +6,7 @@ import pytest
 from vllm import SamplingParams
 from vllm.platforms import current_platform
 from vllm.v1.watermarking import (
+    BinomialScoreWatermarkDetector,
     GumbelWatermarkDetector,
     MultibitRedGreenWatermarkDetector,
     RedGreenWatermarkDetector,
@@ -29,8 +30,30 @@ from vllm.v1.watermarking import (
             MultibitRedGreenWatermarkDetector,
             1.01e-5,
         ),
+        (
+            {"algorithm": "chi_squared", "key": 42, "context_width": 4},
+            BinomialScoreWatermarkDetector,
+            1.34e-31,
+        ),
+        (
+            {"algorithm": "ppl_hard", "key": 42, "context_width": 4},
+            BinomialScoreWatermarkDetector,
+            5.28e-12,
+        ),
+        (
+            {"algorithm": "ppl_soft", "key": 42, "context_width": 4},
+            BinomialScoreWatermarkDetector,
+            3.79e-252,
+        ),
     ],
-    ids=["gumbel", "red_green", "multibit_red_green"],
+    ids=[
+        "gumbel",
+        "red_green",
+        "multibit_red_green",
+        "chi_squared",
+        "ppl_hard",
+        "ppl_soft",
+    ],
 )
 def test_llm_generated_sequence_is_watermarked(
     vllm_runner, watermark_config, detector_cls, recorded_p_value

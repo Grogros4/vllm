@@ -82,8 +82,8 @@ generation.
 - Trace replay replaces the sampled token and therefore cannot apply a
   watermark. The first watermarked trace replay request emits a server-side
   warning and runs without watermarking.
-- Parallel sampling (`n > 1`) is supported, but plain Gumbel candidates can be
-  identical while their contexts remain identical.
+- Parallel sampling (`n > 1`) is supported, but plain Gumbel and `ppl_soft`
+  candidates can be identical while their contexts remain identical.
 - Structured outputs and tool grammars are applied before watermark sampling.
   Restrictive constraints can reduce the statistical evidence available to a
   detector.
@@ -272,6 +272,61 @@ print(result.p_value, result.message)
 
 The multi-bit red-green watermark does not support
 [speculative decoding](#speculative-decoding).
+
+### Chi-squared
+
+The chi-squared watermark comes from the constrained optimization framework of
+[Gloaguen et al. (2026)](https://arxiv.org/abs/2602.06754). The key and the
+prior token context give every candidate token a score `g_u` drawn from
+Binomial(30, 1/2), and sampling draws token `u` with probability
+`p_u * max(0, 1 + delta * (g_u + mu))`, where `p` is the model's next-token
+distribution after temperature scaling and top-k/top-p filtering and `mu`
+normalizes the distribution. This maximizes the expected score minus a
+chi-squared penalty on the distance from `p`; a larger `delta` (default 1.0)
+gives a stronger watermark and more distortion:
+
+```bash
+vllm serve MODEL \
+  --watermark-config '{"algorithm":"chi_squared","key":42,"delta":1.0}'
+```
+
+Detection sums the scores of the scored tokens and reports the binomial tail
+probability of at least that sum:
+
+```python
+from vllm.v1.watermarking import BinomialScoreWatermarkDetector
+
+result = BinomialScoreWatermarkDetector(key=42).detect(token_ids)
+```
+
+The chi-squared watermark does not support
+[speculative decoding](#speculative-decoding).
+
+### Perplexity
+
+The perplexity watermarks of
+[Gloaguen et al. (2026)](https://arxiv.org/abs/2602.06754) use the same scores
+as the chi-squared watermark but bound how far the watermark raises the
+surprisal `-log p` of the sampled token, with a budget of `epsilon` nats per
+token (default 0):
+
+- `ppl_hard` samples from the distribution with the highest expected score
+  among those whose expected surprisal exceeds the entropy of `p` by at most
+  `epsilon` for every key. The solution puts all of its probability on one or
+  two tokens.
+- `ppl_soft` deterministically selects the token maximizing
+  `g_u + lambda * log p_u`, with `lambda` the smallest value for which the
+  expected surprisal exceeds the entropy of `p` by at most `epsilon` on average
+  over keys. At every step, `lambda` is estimated from 128 Monte Carlo draws of
+  the scores of the 4096 most probable tokens.
+
+```bash
+vllm serve MODEL \
+  --watermark-config '{"algorithm":"ppl_soft","key":42,"epsilon":0.0}'
+```
+
+Both are detected with `BinomialScoreWatermarkDetector`, like the chi-squared
+watermark, and neither supports [speculative decoding](#speculative-decoding).
 
 ### SynthID-Text
 

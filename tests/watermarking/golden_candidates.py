@@ -20,6 +20,7 @@ from vllm.config.watermarking import (
     derive_watermark_key,
 )
 from vllm.v1.watermarking import (
+    BinomialScoreWatermarkDetector,
     DualKeyGumbelWatermarkDetector,
     GumbelWatermarkDetector,
     MultibitRedGreenWatermarkDetector,
@@ -51,6 +52,7 @@ WATERMARK_CONFIG_FIELDS = (
     "message_bits",
     "aggregator",
     "aggregator_lambda",
+    "epsilon",
     "context_width",
     "deduplicate_contexts",
     "deduplicate_contexts_max_history",
@@ -107,10 +109,12 @@ class WatermarkingSchemeConfig:
     generation_deduplicate_contexts_max_history: int | None = 8192
     detection_deduplicate_contexts: bool = True
     p_value_threshold: float = 0.01
-    delta: float = 2.0
+    # None selects the algorithm's own default.
+    delta: float | None = None
     gamma: float = 0.25
     message: int = 0
     message_bits: int = 16
+    epsilon: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -207,6 +211,20 @@ def _create_multibit_red_green_detector(
     )
 
 
+def _create_binomial_score_detector(
+    key: int,
+    config: WatermarkingSchemeConfig,
+    prf: WatermarkPRFName,
+) -> WatermarkDetector:
+    return BinomialScoreWatermarkDetector(
+        key=key,
+        context_width=config.context_width,
+        p_value_threshold=config.p_value_threshold,
+        prf=prf,
+        deduplicate_contexts=config.detection_deduplicate_contexts,
+    )
+
+
 DETECTOR_FACTORIES = {
     "gumbel": _create_gumbel_detector,
     "dual_key_gumbel": _create_dual_key_gumbel_detector,
@@ -214,6 +232,9 @@ DETECTOR_FACTORIES = {
     "multibit_red_green": _create_multibit_red_green_detector,
     # Without speculation lookahead Gumbel-max samples like Gumbel-max.
     "lookahead_gumbel": _create_gumbel_detector,
+    "chi_squared": _create_binomial_score_detector,
+    "ppl_hard": _create_binomial_score_detector,
+    "ppl_soft": _create_binomial_score_detector,
 }
 
 
@@ -251,6 +272,7 @@ class WatermarkingCandidate:
                 "gamma": self.scheme_config.gamma,
                 "message": self.scheme_config.message,
                 "message_bits": self.scheme_config.message_bits,
+                "epsilon": self.scheme_config.epsilon,
             },
             "prf": self.prf,
             "prf_version": prf_version,
@@ -299,6 +321,7 @@ class WatermarkingCandidate:
                 "alpha": getattr(detector, "alpha", None),
                 "gamma": getattr(detector, "gamma", None),
                 "message_bits": getattr(detector, "message_bits", None),
+                "num_trials": getattr(detector, "num_trials", None),
                 "prf_key": str(detector.prf.key),
                 "key_b_prf_key": None if key_b_prf is None else str(key_b_prf.key),
             },
@@ -387,6 +410,7 @@ class WatermarkingCandidate:
             gamma=self.scheme_config.gamma,
             message=self.scheme_config.message,
             message_bits=self.scheme_config.message_bits,
+            epsilon=self.scheme_config.epsilon,
             context_width=self.scheme_config.context_width,
             deduplicate_contexts=(self.scheme_config.generation_deduplicate_contexts),
             deduplicate_contexts_max_history=(
@@ -487,10 +511,11 @@ def _candidate(
     generation_deduplicate_contexts_max_history: int | None = 8192,
     detection_deduplicate_contexts: bool = True,
     p_value_threshold: float = 0.01,
-    delta: float = 2.0,
+    delta: float | None = None,
     gamma: float = 0.25,
     message: int = 0,
     message_bits: int = 16,
+    epsilon: float = 0.0,
     fixture: DeterministicGenerationFixture = BALANCED_FIXTURE,
 ) -> WatermarkingCandidate:
     return WatermarkingCandidate(
@@ -512,6 +537,7 @@ def _candidate(
             gamma=gamma,
             message=message,
             message_bits=message_bits,
+            epsilon=epsilon,
         ),
         prf=prf,
         key=key,
@@ -736,6 +762,40 @@ WATERMARKING_CANDIDATES = (
     ),
     _candidate(
         "lookahead-gumbel-philox-key42-cw4", "lookahead_gumbel", 42, prf="philox"
+    ),
+    _candidate("chi-squared-philox-key42-cw4", "chi_squared", 42, prf="philox"),
+    _candidate(
+        "chi-squared-philox-key42-cw4-wrong-key",
+        "chi_squared",
+        42,
+        prf="philox",
+        detection_key=43,
+    ),
+    _candidate(
+        "chi-squared-philox-key7-cw2-delta2",
+        "chi_squared",
+        7,
+        prf="philox",
+        context_width=2,
+        delta=2.0,
+    ),
+    _candidate("ppl-hard-philox-key42-cw4", "ppl_hard", 42, prf="philox"),
+    _candidate(
+        "ppl-hard-philox-key7-cw2-epsilon0.5",
+        "ppl_hard",
+        7,
+        prf="philox",
+        context_width=2,
+        epsilon=0.5,
+    ),
+    _candidate("ppl-soft-philox-key42-cw4", "ppl_soft", 42, prf="philox"),
+    _candidate(
+        "ppl-soft-philox-key7-cw2-epsilon0.5",
+        "ppl_soft",
+        7,
+        prf="philox",
+        context_width=2,
+        epsilon=0.5,
     ),
 )
 

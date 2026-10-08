@@ -13,7 +13,14 @@ from vllm.logger import init_logger
 logger = init_logger(__name__)
 
 WatermarkingAlgorithm = Literal[
-    "gumbel", "dual_key_gumbel", "red_green", "multibit_red_green", "lookahead_gumbel"
+    "gumbel",
+    "dual_key_gumbel",
+    "red_green",
+    "multibit_red_green",
+    "lookahead_gumbel",
+    "chi_squared",
+    "ppl_hard",
+    "ppl_soft",
 ]
 LookaheadAggregator = Literal["pi1", "pi2", "max", "tsum", "min", "lin", "expsum"]
 WatermarkPRFName = Literal["philox"]
@@ -38,9 +45,11 @@ class WatermarkConfig:
     alpha: float = Field(default=0.1, ge=0, le=1)
     """Probability of selecting key B for dual-key watermarking."""
     delta: float | None = Field(default=None, gt=0)
-    """Logit bias of the red-green watermarks: added to green-list tokens for
-    `red_green` (default 2.0) and for every message bit a token agrees with for
-    `multibit_red_green` (default 0.5)."""
+    """Strength of the logit-bias and chi-squared watermarks; each algorithm
+    has its own default: the bias added to green-list tokens for `red_green`
+    (2.0) and for every message bit a token agrees with for
+    `multibit_red_green` (0.5), and how strongly `chi_squared` favors tokens
+    with high watermark scores (1.0)."""
     gamma: float = Field(default=0.25, gt=0, lt=1)
     """Fraction of the vocabulary in each green list for red-green
     watermarking."""
@@ -56,6 +65,11 @@ class WatermarkConfig:
     keeping the result a standard Gumbel."""
     aggregator_lambda: float = Field(default=1.0, gt=0)
     """Weight of the child's value in the `lin` lookahead aggregator."""
+    epsilon: float = Field(default=0.0, ge=0)
+    """Perplexity budget of the perplexity watermarks: how many nats the
+    expected surprisal of a sampled token may exceed the entropy of the model's
+    next-token distribution, for every key (`ppl_hard`) or on average over keys
+    (`ppl_soft`)."""
     context_width: int = Field(default=4, ge=1)
     """Number of prior tokens used by the watermark PRF."""
     deduplicate_contexts: WatermarkContextScope = "single_turn"
@@ -88,11 +102,16 @@ class WatermarkConfig:
             self.deduplicate_contexts_max_history is not None
             and self.deduplicate_contexts_max_history < _MIN_RECOMMENDED_DEDUP_HISTORY
         )
-        if self.algorithm in ("gumbel", "dual_key_gumbel", "lookahead_gumbel") and (
-            self.deduplicate_contexts == "none" or history_is_too_short
-        ):
+        if self.algorithm in (
+            "gumbel",
+            "dual_key_gumbel",
+            "lookahead_gumbel",
+            "ppl_soft",
+        ) and (self.deduplicate_contexts == "none" or history_is_too_short):
+            # These select each token deterministically from the key and context.
+            name = "Soft perplexity" if self.algorithm == "ppl_soft" else "Gumbel-max"
             logger.warning_once(
-                "Gumbel-max watermarking with context deduplication "
+                f"{name} watermarking with context deduplication "
                 "disabled or limited to fewer than "
                 f"{_MIN_RECOMMENDED_DEDUP_HISTORY} positions may increase the "
                 "frequency of degenerate generations, including repetition loops. "

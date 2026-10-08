@@ -9,6 +9,10 @@ forces the fp32 copy in ``apply_sampling_params``, so the first ordinary
 temperature-1.0 request is the first launch with model-dtype logits and pays
 the compilation inside inference. This pre-compiles every specialization the
 sampler path can launch for the configured watermark.
+
+The chi-squared and perplexity watermarkers launch their kernels from
+``sample``, so for them the warmup samples once per logits dtype and skip-mask
+setting.
 """
 
 from __future__ import annotations
@@ -100,6 +104,19 @@ def _philox_lookahead_watermarker(watermarker: Watermarker):
     return None
 
 
+def _philox_binomial_score_watermarker(watermarker: Watermarker):
+    """The watermarker when it launches the binomial-score kernels, else None."""
+    from vllm.v1.watermarking.binomial import BinomialScoreWatermarker
+    from vllm.v1.watermarking.prfs import PhiloxPRF
+
+    if (
+        isinstance(watermarker, BinomialScoreWatermarker)
+        and type(watermarker.prf) is PhiloxPRF
+    ):
+        return watermarker
+    return None
+
+
 @torch.inference_mode()
 def watermark_sample_warmup(worker: Worker) -> None:
     if getattr(worker.vllm_config, "watermark_config", None) is None:
@@ -111,6 +128,7 @@ def watermark_sample_warmup(worker: Worker) -> None:
         return
 
     from vllm.v1.watermarking.gpu_sampler import GPUWatermarkSampler
+    from vllm.v1.watermarking.watermarker import RandomSampler
     from vllm.v1.worker.gpu.sample.watermark import (
         philox_green_bias,
         philox_gumbel_sample,
@@ -135,7 +153,8 @@ def watermark_sample_warmup(worker: Worker) -> None:
         red_green = _philox_red_green_watermarker(sampler.watermarker)
         multibit = _philox_multibit_red_green_watermarker(sampler.watermarker)
         lookahead = _philox_lookahead_watermarker(sampler.watermarker)
-        if not keys and red_green is None and multibit is None:
+        binomial = _philox_binomial_score_watermarker(sampler.watermarker)
+        if not keys and red_green is None and multibit is None and binomial is None:
             return
 
         # The sampler passes model-dtype logits through when no logits
@@ -252,5 +271,22 @@ def watermark_sample_warmup(worker: Worker) -> None:
                     ),
                     sampling_state["skip_mask"],
                 )
+            if binomial is not None:
+                random_sampler = RandomSampler(
+                    expanded_idx_mapping=sampling_state["expanded_idx_mapping"],
+                    temperatures=sampling_state["temperatures"],
+                    seeds=sampling_state["seeds"],
+                    positions=sampling_state["positions"],
+                    use_fp64=sampler.use_fp64_gumbel,
+                )
+                for use_skip_mask in with_skip_mask:
+                    binomial.sample(
+                        logits,
+                        contexts,
+                        random_sampler,
+                        skip_mask=(
+                            sampling_state["skip_mask"] if use_skip_mask else None
+                        ),
+                    )
     except Exception:
         logger.warning("Skipping watermark sampler warmup.", exc_info=True)
