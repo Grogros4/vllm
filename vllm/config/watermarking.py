@@ -12,7 +12,7 @@ from vllm.logger import init_logger
 
 logger = init_logger(__name__)
 
-WatermarkingAlgorithm = Literal["gumbel", "dual_key_gumbel"]
+WatermarkingAlgorithm = Literal["gumbel", "dual_key_gumbel", "chi_squared"]
 WatermarkPRFName = Literal["philox"]
 WatermarkContextScope = Literal["none", "single_turn", "all"]
 
@@ -34,6 +34,9 @@ class WatermarkConfig:
     """Algorithm used to watermark generated text."""
     alpha: float = Field(default=0.1, ge=0, le=1)
     """Probability of selecting key B for dual-key watermarking."""
+    delta: float = Field(default=1.0, gt=0)
+    """Strength of the chi-squared watermark: how strongly sampling favors
+    tokens with high watermark scores, at the cost of more distortion."""
     context_width: int = Field(default=4, ge=1)
     """Number of prior tokens used by the watermark PRF."""
     deduplicate_contexts: WatermarkContextScope = "single_turn"

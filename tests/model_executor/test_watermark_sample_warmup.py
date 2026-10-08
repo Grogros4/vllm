@@ -298,3 +298,45 @@ def test_warmup_failure_does_not_abort_startup(
         watermark_sample_warmup(_worker(WatermarkConfig(key=MASTER_KEY)))
 
     assert "Skipping watermark sampler warmup." in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("deduplicate_contexts", "skip_masks"),
+    [("single_turn", {True}), ("none", {True, False})],
+)
+def test_chi_squared_warms_its_sampling_path(
+    monkeypatch: pytest.MonkeyPatch,
+    deduplicate_contexts: str,
+    skip_masks: set[bool],
+) -> None:
+    """The chi-squared watermarker launches its kernels from ``sample``.
+
+    The warmup samples once per logits dtype and reachable skip-mask setting,
+    and launches no Gumbel kernel.
+    """
+    gumbel_calls = _capture_calls(monkeypatch)
+    worker = _worker(
+        WatermarkConfig(
+            key=MASTER_KEY,
+            algorithm="chi_squared",
+            deduplicate_contexts=deduplicate_contexts,
+        )
+    )
+    calls: list[tuple[torch.dtype, bool]] = []
+    monkeypatch.setattr(
+        worker.model_runner.sampler.watermarker,
+        "sample",
+        lambda logits, contexts, random_sampler, skip_mask=None: calls.append(
+            (logits.dtype, skip_mask is not None)
+        ),
+    )
+
+    watermark_sample_warmup(worker)
+
+    assert gumbel_calls == []
+    assert len(calls) == len(set(calls))
+    assert set(calls) == {
+        (dtype, use_skip_mask)
+        for dtype in (torch.bfloat16, torch.float32)
+        for use_skip_mask in skip_masks
+    }

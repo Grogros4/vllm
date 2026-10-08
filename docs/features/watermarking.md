@@ -106,7 +106,8 @@ rejected before model loading. Set
 not watermarked, while target-side rejection recovery and bonus sampling remain
 watermarked. The watermark signal is diluted in proportion to the share of
 output tokens supplied by accepted drafts; rejected drafts do not dilute it
-because their recovery tokens are watermarked.
+because their recovery tokens are watermarked. `chi_squared` is rejected even
+with `allow_target_only_watermarking`.
 
 For `dual_key_gumbel`, `alpha` has no effect under speculative decoding. The
 speculative protocol selects the key for each token instead.
@@ -195,6 +196,35 @@ vllm serve MODEL \
   '{"method":"mtp","num_speculative_tokens":3,"draft_sample_method":"probabilistic"}' \
   --watermark-config '{"algorithm":"dual_key_gumbel","key":42,"alpha":0.1}'
 ```
+
+### Chi-squared
+
+The chi-squared watermark comes from the constrained optimization framework of
+[Gloaguen et al. (2026)](https://arxiv.org/abs/2602.06754). The key and the
+prior token context give every candidate token a score `g_u` drawn from
+Binomial(30, 1/2), and sampling draws token `u` with probability
+`p_u * max(0, 1 + delta * (g_u + mu))`, where `p` is the model's next-token
+distribution after temperature scaling and top-k/top-p filtering and `mu`
+normalizes the distribution. This maximizes the expected score minus a
+chi-squared penalty on the distance from `p`; a larger `delta` (default 1.0)
+gives a stronger watermark and more distortion:
+
+```bash
+vllm serve MODEL \
+  --watermark-config '{"algorithm":"chi_squared","key":42,"delta":1.0}'
+```
+
+Detection sums the scores of the scored tokens and reports the binomial tail
+probability of at least that sum:
+
+```python
+from vllm.v1.watermarking import BinomialScoreWatermarkDetector
+
+result = BinomialScoreWatermarkDetector(key=42).detect(token_ids)
+```
+
+The chi-squared watermark does not support
+[speculative decoding](#speculative-decoding).
 
 ### SynthID-Text
 

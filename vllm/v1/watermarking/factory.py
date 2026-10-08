@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
 from vllm.config.watermarking import WatermarkConfig
+from vllm.v1.watermarking.chi_squared import ChiSquaredWatermarker
 from vllm.v1.watermarking.gumbel import (
     DualKeyGumbelWatermarker,
     GumbelWatermarker,
@@ -18,5 +19,9 @@ def create_watermarker(config: WatermarkConfig) -> Watermarker:
             config.context_width,
             config.prf,
             config.alpha,
+        )
+    if config.algorithm == "chi_squared":
+        return ChiSquaredWatermarker(
+            config.key, config.context_width, config.prf, config.delta
         )
     raise ValueError(f"Unknown watermarking algorithm: {config.algorithm}")
