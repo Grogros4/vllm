@@ -192,6 +192,7 @@ _VERIFY_ROWS = {
     "expanded_idx_mapping": torch.tensor([0, 0, 0, 1]),
     "expanded_local_pos": torch.tensor([0, 1, 2, 0]),
     "draft_sampled": torch.tensor([8, 9, 7, 6]),
+    "cu_num_logits": torch.tensor([0, 3, 4]),
 }
 _VERIFY_CONTEXTS = torch.tensor([[7, 8], [8, 9], [9, 7], [5, 6]])
 

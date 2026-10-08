@@ -9,8 +9,11 @@ import torch
 from vllm.logger import init_logger
 from vllm.sampling_params import SamplingParams
 from vllm.v1.sample.ops.topk_topp_sampler import apply_top_k_top_p
-from vllm.v1.watermarking.red_green import RedGreenWatermarker
-from vllm.v1.watermarking.watermarker import RandomSampler, Watermarker
+from vllm.v1.watermarking.watermarker import (
+    RandomSampler,
+    SupportsVerificationLogits,
+    Watermarker,
+)
 from vllm.v1.worker.gpu.buffer_utils import UvaBackedTensor
 from vllm.v1.worker.gpu.sample.sampler import Sampler
 from vllm.v1.worker.gpu.sample.watermark import repeated_context_mask
@@ -122,14 +125,17 @@ class GPUWatermarkSampler(Sampler):
         expanded_idx_mapping: torch.Tensor,
         expanded_local_pos: torch.Tensor,
         draft_sampled: torch.Tensor,
+        cu_num_logits: torch.Tensor,
     ) -> torch.Tensor:
-        """Red-green watermark the logits rejection sampling verifies.
+        """The logits rejection sampling verifies, from the watermarker's
+        ``verification_logits``.
 
-        Each row's context ends with the drafted tokens before it, so every
-        emitted token, accepted draft or not, follows the watermarked
-        distribution. Opted-out, greedy and deduplicated rows keep their logits.
+        ``draft_sampled`` holds each row's input token, so the draft row ``i``
+        verifies is ``draft_sampled[i + 1]``, and each row's context ends with
+        the drafted tokens before it. Opted-out, greedy and deduplicated rows
+        keep their logits.
         """
-        assert isinstance(self.watermarker, RedGreenWatermarker)
+        assert isinstance(self.watermarker, SupportsVerificationLogits)
         contexts = self._get_contexts(
             expanded_idx_mapping, expanded_local_pos, draft_sampled
         )
@@ -140,8 +146,12 @@ class GPUWatermarkSampler(Sampler):
             enabled &= ~self._get_repeated_contexts(
                 expanded_idx_mapping, contexts, expanded_local_pos
             )
-        return self.watermarker.watermark_logits(
-            processed_logits, contexts, skip_mask=~enabled
+        return self.watermarker.verification_logits(
+            processed_logits,
+            contexts,
+            draft_sampled.roll(-1),
+            cu_num_logits,
+            ~enabled,
         )
 
     def _get_repeated_contexts(

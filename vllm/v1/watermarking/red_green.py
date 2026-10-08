@@ -106,6 +106,18 @@ class RedGreenWatermarker(Watermarker):
             green &= ~skip_mask.unsqueeze(-1)
         return logits.float() + self.delta * green
 
+    def verification_logits(
+        self,
+        logits: torch.Tensor,
+        contexts: torch.Tensor,
+        draft_tokens: torch.Tensor,
+        cu_num_logits: torch.Tensor,
+        skip_mask: torch.Tensor,
+    ) -> torch.Tensor:
+        # The watermark is a change of distribution: verifying against it makes
+        # every emitted token follow it.
+        return self.watermark_logits(logits, contexts, skip_mask)
+
     def sample(
         self,
         logits: torch.Tensor,

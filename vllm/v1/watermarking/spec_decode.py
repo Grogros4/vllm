@@ -7,10 +7,10 @@ from vllm.config.watermarking import WatermarkConfig, WatermarkContextScope
 from vllm.v1.watermarking.factory import create_watermarker
 from vllm.v1.watermarking.gumbel import GumbelWatermarker
 from vllm.v1.watermarking.prfs import PhiloxPRF
-from vllm.v1.watermarking.red_green import RedGreenWatermarker
 from vllm.v1.watermarking.watermarker import (
     RandomSampler,
     SupportsSpeculativeDecoding,
+    SupportsVerificationLogits,
     Watermarker,
 )
 from vllm.v1.worker.gpu.sample.watermark import draft_watermarking_mask
@@ -171,7 +171,9 @@ def create_speculative_draft_watermarker(
             deduplicate_contexts,
             deduplicate_contexts_max_history,
         )
-    if allow_target_only:
+    if allow_target_only or getattr(
+        watermarker, "verifies_unwatermarked_drafts", False
+    ):
         return None
     raise ValueError(
         f"The {type(watermarker).__name__} watermarking algorithm does not support "
@@ -213,7 +215,7 @@ def speculative_target_watermark_key(
     watermarker = create_speculative_target_watermarker(
         create_watermarker(watermark_config)
     )
-    if isinstance(watermarker, RedGreenWatermarker):
+    if isinstance(watermarker, SupportsVerificationLogits):
         # Verified against its watermarked logits; recovery needs no key.
         return None
     return _resolve_watermark_key(watermarker)

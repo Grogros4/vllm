@@ -101,3 +101,28 @@ class SupportsSpeculativeDecoding(Protocol):
 
     draft_watermarker: Watermarker
     target_watermarker: Watermarker
+
+
+@runtime_checkable
+class SupportsVerificationLogits(Protocol):
+    """A watermarker that changes the logits speculative decoding verifies
+    drafts against, instead of keying the recovery draw."""
+
+    def verification_logits(
+        self,
+        logits: torch.Tensor,
+        contexts: torch.Tensor,
+        draft_tokens: torch.Tensor,
+        cu_num_logits: torch.Tensor,
+        skip_mask: torch.Tensor,
+    ) -> torch.Tensor:
+        """Logits to verify each row against.
+
+        ``logits`` [num_logits, vocab] are the processed target logits of the
+        verification rows: each request's drafted rows followed by its bonus
+        row, request ``r`` owning rows ``cu_num_logits[r]:cu_num_logits[r + 1]``.
+        Row ``i``'s context ends with the drafts before it and
+        ``draft_tokens[i]`` is the draft it verifies (arbitrary at bonus rows).
+        Rows in ``skip_mask`` must keep their logits.
+        """
+        ...

@@ -74,6 +74,19 @@ def _philox_red_green_watermarker(watermarker: Watermarker):
     return None
 
 
+def _philox_lookahead_watermarker(watermarker: Watermarker):
+    """The watermarker when it launches the lookahead kernels, else None."""
+    from vllm.v1.watermarking.lookahead import LookaheadGumbelWatermarker
+    from vllm.v1.watermarking.prfs import PhiloxPRF
+
+    if (
+        isinstance(watermarker, LookaheadGumbelWatermarker)
+        and type(watermarker.prf) is PhiloxPRF
+    ):
+        return watermarker
+    return None
+
+
 @torch.inference_mode()
 def watermark_sample_warmup(worker: Worker) -> None:
     if getattr(worker.vllm_config, "watermark_config", None) is None:
@@ -106,6 +119,7 @@ def watermark_sample_warmup(worker: Worker) -> None:
     try:
         keys = _philox_sampler_keys(sampler.watermarker)
         red_green = _philox_red_green_watermarker(sampler.watermarker)
+        lookahead = _philox_lookahead_watermarker(sampler.watermarker)
         if not keys and red_green is None:
             return
 
@@ -198,5 +212,17 @@ def watermark_sample_warmup(worker: Worker) -> None:
                         red_green.gamma,
                         skip_mask=sampling_state["skip_mask"],
                     )
+            if lookahead is not None and speculative:
+                # Verification runs the race, chain and point-mass kernels on
+                # int32 draft tokens, one request of all the warmup rows.
+                lookahead.verification_logits(
+                    logits,
+                    contexts,
+                    contexts[:, -1],
+                    torch.tensor(
+                        [0, _NUM_WARMUP_TOKENS], dtype=torch.int32, device=device
+                    ),
+                    sampling_state["skip_mask"],
+                )
     except Exception:
         logger.warning("Skipping watermark sampler warmup.", exc_info=True)

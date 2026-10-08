@@ -283,6 +283,51 @@ def test_red_green_warms_its_sampler_and_verification_kernels(
     }
 
 
+def test_lookahead_warms_its_verification_kernels_under_speculation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Sampling is Gumbel-max; speculative verification also runs the race,
+    chain and point-mass kernels, on int32 draft tokens with a skip mask."""
+    from vllm.v1.watermarking.lookahead import LookaheadGumbelWatermarker
+
+    gumbel_calls = _capture_calls(monkeypatch)
+    calls: list[dict] = []
+
+    def fake_verification_logits(
+        self, logits, contexts, draft_tokens, cu_num_logits, skip_mask
+    ):
+        calls.append(
+            {
+                "logits": logits,
+                "contexts": contexts,
+                "draft_tokens": draft_tokens,
+                "cu_num_logits": cu_num_logits,
+                "skip_mask": skip_mask,
+            }
+        )
+        return logits
+
+    monkeypatch.setattr(
+        LookaheadGumbelWatermarker, "verification_logits", fake_verification_logits
+    )
+    config = WatermarkConfig(key=MASTER_KEY, algorithm="lookahead_gumbel")
+
+    watermark_sample_warmup(_worker(config))
+    assert {call["key"] for call in gumbel_calls} == {MASTER_KEY}
+    assert calls == []
+
+    worker = _worker(config, speculative=True)
+    worker.vllm_config.speculative_config = object()
+    watermark_sample_warmup(worker)
+
+    assert {call["logits"].dtype for call in calls} == {torch.bfloat16, torch.float32}
+    for call in calls:
+        assert call["contexts"].dtype == torch.int32
+        assert call["draft_tokens"].dtype == torch.int32
+        assert call["cu_num_logits"].dtype == torch.int32
+        assert call["skip_mask"].dtype == torch.bool
+
+
 def test_warmup_argument_dtypes_match_the_runtime_buffers(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
