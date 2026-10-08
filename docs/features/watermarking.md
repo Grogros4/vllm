@@ -106,7 +106,8 @@ rejected before model loading. Set
 not watermarked, while target-side rejection recovery and bonus sampling remain
 watermarked. The watermark signal is diluted in proportion to the share of
 output tokens supplied by accepted drafts; rejected drafts do not dilute it
-because their recovery tokens are watermarked.
+because their recovery tokens are watermarked. `synthid` is rejected even with
+`allow_target_only_watermarking`.
 
 For `dual_key_gumbel`, `alpha` has no effect under speculative decoding. The
 speculative protocol selects the key for each token instead.
@@ -198,8 +199,32 @@ vllm serve MODEL \
 
 ### SynthID-Text
 
-[SynthID-Text](https://www.nature.com/articles/s41586-024-08025-4) is planned but
-not currently implemented.
+[SynthID-Text](https://www.nature.com/articles/s41586-024-08025-4) samples
+through a tournament. Each of `depth` layers (default 30) gives every candidate
+token a pseudorandom g-value of 0 or 1 from the key and the prior token context.
+A layer replaces the distribution with that of the winner of a match between
+`num_leaves` (default 2) independent draws, where draws with g-value 1 beat
+those with 0. Sampling draws from the distribution after all layers, computed
+in closed form over each row's 4096 most probable tokens after temperature
+scaling and top-k/top-p filtering. With two leaves the watermark leaves the
+output distribution unchanged on average over keys; more leaves strengthen it
+at the cost of distortion:
+
+```bash
+vllm serve MODEL \
+  --watermark-config '{"algorithm":"synthid","key":42,"depth":30}'
+```
+
+Detection counts the g-values equal to 1 over the scored tokens and layers and
+reports the binomial tail probability of at least that count:
+
+```python
+from vllm.v1.watermarking import SynthIDWatermarkDetector
+
+result = SynthIDWatermarkDetector(key=42, depth=30).detect(token_ids)
+```
+
+SynthID-Text does not support [speculative decoding](#speculative-decoding).
 
 ## Pseudorandom functions
 

@@ -22,6 +22,7 @@ from vllm.config.watermarking import (
 from vllm.v1.watermarking import (
     DualKeyGumbelWatermarkDetector,
     GumbelWatermarkDetector,
+    SynthIDWatermarkDetector,
     WatermarkDetection,
     WatermarkDetector,
     create_prf,
@@ -29,7 +30,7 @@ from vllm.v1.watermarking import (
 )
 from vllm.v1.worker.gpu.sample.watermark import repeated_context_mask
 
-GOLDEN_SCHEMA_VERSION = 3
+GOLDEN_SCHEMA_VERSION = 4
 
 # JSON floats round-trip exactly, but libm differs by an ULP across builds.
 GOLDEN_FLOAT_RTOL = 1e-9
@@ -43,6 +44,8 @@ ROUTING_BOUNDARY_MIN_DISTANCE = 1e-6
 WATERMARK_CONFIG_FIELDS = (
     "algorithm",
     "alpha",
+    "depth",
+    "num_leaves",
     "context_width",
     "deduplicate_contexts",
     "deduplicate_contexts_max_history",
@@ -99,6 +102,8 @@ class WatermarkingSchemeConfig:
     generation_deduplicate_contexts_max_history: int | None = 8192
     detection_deduplicate_contexts: bool = True
     p_value_threshold: float = 0.01
+    depth: int = 30
+    num_leaves: int = 2
 
 
 @dataclass(frozen=True)
@@ -165,9 +170,25 @@ def _create_dual_key_gumbel_detector(
     )
 
 
+def _create_synthid_detector(
+    key: int,
+    config: WatermarkingSchemeConfig,
+    prf: WatermarkPRFName,
+) -> WatermarkDetector:
+    return SynthIDWatermarkDetector(
+        key=key,
+        context_width=config.context_width,
+        p_value_threshold=config.p_value_threshold,
+        prf=prf,
+        deduplicate_contexts=config.detection_deduplicate_contexts,
+        depth=config.depth,
+    )
+
+
 DETECTOR_FACTORIES = {
     "gumbel": _create_gumbel_detector,
     "dual_key_gumbel": _create_dual_key_gumbel_detector,
+    "synthid": _create_synthid_detector,
 }
 
 
@@ -201,6 +222,8 @@ class WatermarkingCandidate:
                     self.scheme_config.detection_deduplicate_contexts
                 ),
                 "p_value_threshold": self.scheme_config.p_value_threshold,
+                "depth": self.scheme_config.depth,
+                "num_leaves": self.scheme_config.num_leaves,
             },
             "prf": self.prf,
             "prf_version": prf_version,
@@ -247,8 +270,13 @@ class WatermarkingCandidate:
                 "p_value_threshold": detector.p_value_threshold,
                 "deduplicate_contexts": detector.deduplicate_contexts,
                 "alpha": getattr(detector, "alpha", None),
-                "prf_key": str(detector.prf.key),
+                "depth": getattr(detector, "depth", None),
+                "prf_key": str(detector.prf.key) if hasattr(detector, "prf") else None,
                 "key_b_prf_key": None if key_b_prf is None else str(key_b_prf.key),
+                "g_value_prf_keys": [
+                    str(prf.key) for prf in getattr(detector, "prfs", [])
+                ]
+                or None,
             },
         }
 
@@ -330,6 +358,8 @@ class WatermarkingCandidate:
             algorithm=self.scheme,
             key=self.key,
             alpha=self.scheme_config.generation_alpha,
+            depth=self.scheme_config.depth,
+            num_leaves=self.scheme_config.num_leaves,
             context_width=self.scheme_config.context_width,
             deduplicate_contexts=(self.scheme_config.generation_deduplicate_contexts),
             deduplicate_contexts_max_history=(
@@ -430,6 +460,8 @@ def _candidate(
     generation_deduplicate_contexts_max_history: int | None = 8192,
     detection_deduplicate_contexts: bool = True,
     p_value_threshold: float = 0.01,
+    depth: int = 30,
+    num_leaves: int = 2,
     fixture: DeterministicGenerationFixture = BALANCED_FIXTURE,
 ) -> WatermarkingCandidate:
     return WatermarkingCandidate(
@@ -447,6 +479,8 @@ def _candidate(
             ),
             detection_deduplicate_contexts=detection_deduplicate_contexts,
             p_value_threshold=p_value_threshold,
+            depth=depth,
+            num_leaves=num_leaves,
         ),
         prf=prf,
         key=key,
@@ -624,6 +658,23 @@ WATERMARKING_CANDIDATES = (
         prf="philox",
         generation_deduplicate_contexts="all",
         fixture=REPETITIVE_FIXTURE,
+    ),
+    _candidate("synthid-philox-key42-cw4", "synthid", 42, prf="philox"),
+    _candidate(
+        "synthid-philox-key42-cw4-wrong-key",
+        "synthid",
+        42,
+        prf="philox",
+        detection_key=43,
+    ),
+    _candidate(
+        "synthid-philox-key7-cw2-depth4-leaves3",
+        "synthid",
+        7,
+        prf="philox",
+        context_width=2,
+        depth=4,
+        num_leaves=3,
     ),
 )
 

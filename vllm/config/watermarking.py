@@ -12,7 +12,7 @@ from vllm.logger import init_logger
 
 logger = init_logger(__name__)
 
-WatermarkingAlgorithm = Literal["gumbel", "dual_key_gumbel"]
+WatermarkingAlgorithm = Literal["gumbel", "dual_key_gumbel", "synthid"]
 WatermarkPRFName = Literal["philox"]
 WatermarkContextScope = Literal["none", "single_turn", "all"]
 
@@ -34,6 +34,11 @@ class WatermarkConfig:
     """Algorithm used to watermark generated text."""
     alpha: float = Field(default=0.1, ge=0, le=1)
     """Probability of selecting key B for dual-key watermarking."""
+    depth: int = Field(default=30, ge=1, le=48)
+    """Number of tournament layers of SynthID watermarking."""
+    num_leaves: int = Field(default=2, ge=2)
+    """Number of draws per tournament match of SynthID watermarking. More than
+    two strengthens the watermark but distorts the output distribution."""
     context_width: int = Field(default=4, ge=1)
     """Number of prior tokens used by the watermark PRF."""
     deduplicate_contexts: WatermarkContextScope = "single_turn"

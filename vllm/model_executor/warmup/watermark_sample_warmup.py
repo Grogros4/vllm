@@ -9,6 +9,9 @@ forces the fp32 copy in ``apply_sampling_params``, so the first ordinary
 temperature-1.0 request is the first launch with model-dtype logits and pays
 the compilation inside inference. This pre-compiles every specialization the
 sampler path can launch for the configured watermark.
+
+The SynthID watermarker launches its kernel from ``sample``, so for it the
+warmup samples once per logits dtype and skip-mask setting.
 """
 
 from __future__ import annotations
@@ -61,6 +64,18 @@ def _philox_sampler_keys(watermarker: Watermarker) -> list[int]:
     return [key for key in map(_philox_key, watermarkers) if key is not None]
 
 
+def _philox_synthid_watermarker(watermarker: Watermarker):
+    """The watermarker when it launches the tournament kernel, else None."""
+    from vllm.v1.watermarking.prfs import PhiloxPRF
+    from vllm.v1.watermarking.synthid import SynthIDWatermarker
+
+    if isinstance(watermarker, SynthIDWatermarker) and all(
+        type(prf) is PhiloxPRF for prf in watermarker.prfs
+    ):
+        return watermarker
+    return None
+
+
 @torch.inference_mode()
 def watermark_sample_warmup(worker: Worker) -> None:
     if getattr(worker.vllm_config, "watermark_config", None) is None:
@@ -72,6 +87,7 @@ def watermark_sample_warmup(worker: Worker) -> None:
         return
 
     from vllm.v1.watermarking.gpu_sampler import GPUWatermarkSampler
+    from vllm.v1.watermarking.watermarker import RandomSampler
     from vllm.v1.worker.gpu.sample.watermark import philox_gumbel_sample
 
     # Read the sampler the runner built instead of rebuilding it from config:
@@ -87,7 +103,8 @@ def watermark_sample_warmup(worker: Worker) -> None:
     device = worker.device
     try:
         keys = _philox_sampler_keys(sampler.watermarker)
-        if not keys:
+        synthid = _philox_synthid_watermarker(sampler.watermarker)
+        if not keys and synthid is None:
             return
 
         # The sampler passes model-dtype logits through when no logits
@@ -150,6 +167,23 @@ def watermark_sample_warmup(worker: Worker) -> None:
                         # the mask-free variant with the fp32 default.
                         use_fp64=use_skip_mask and sampler.use_fp64_gumbel,
                         **(sampling_state if use_skip_mask else {}),
+                    )
+            if synthid is not None:
+                random_sampler = RandomSampler(
+                    expanded_idx_mapping=sampling_state["expanded_idx_mapping"],
+                    temperatures=sampling_state["temperatures"],
+                    seeds=sampling_state["seeds"],
+                    positions=sampling_state["positions"],
+                    use_fp64=sampler.use_fp64_gumbel,
+                )
+                for use_skip_mask in with_skip_mask:
+                    synthid.sample(
+                        logits,
+                        contexts,
+                        random_sampler,
+                        skip_mask=(
+                            sampling_state["skip_mask"] if use_skip_mask else None
+                        ),
                     )
     except Exception:
         logger.warning("Skipping watermark sampler warmup.", exc_info=True)

@@ -1355,6 +1355,13 @@ class VllmConfig:
                     "Watermarking supports only autoregressive model-based "
                     "speculative decoding."
                 )
+            # Target-only recovery samples with the Gumbel-max key, which this
+            # algorithm does not use.
+            if watermark_config.algorithm == "synthid":
+                raise ValueError(
+                    "The 'synthid' watermarking algorithm does not support "
+                    "speculative decoding."
+                )
             if (
                 not watermark_config.allow_target_only_watermarking
                 and not watermark_config.supports_speculative_decoding
