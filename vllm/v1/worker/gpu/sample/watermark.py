@@ -1052,3 +1052,103 @@ def philox_green_bias(
         BLOCK_SIZE=block_size,
     )
     return output
+
+
+@triton.jit(do_not_specialize=["key_0_value", "key_1_value", "message"])
+def _philox_multibit_bias_kernel(
+    output_ptr,
+    output_stride,
+    logits_ptr,
+    logits_stride,
+    contexts_ptr,
+    context_stride,
+    skip_mask_ptr,
+    key_0_value,
+    key_1_value,
+    bias,
+    message,
+    vocab_size,
+    MESSAGE_BITS: tl.constexpr,
+    CONTEXT_WIDTH: tl.constexpr,
+    BLOCK_SIZE: tl.constexpr,
+):
+    row = tl.program_id(0).to(tl.int64)
+    block_index = tl.program_id(1)
+    candidate = block_index * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
+    mask = candidate < vocab_size
+    logits = tl.load(
+        logits_ptr + row * logits_stride + candidate, mask=mask, other=0.0
+    ).to(tl.float32)
+
+    key_0 = key_0_value.to(tl.uint32)
+    key_1 = key_1_value.to(tl.uint32)
+    state_0, state_1, state_2, state_3 = _philox_context_state(
+        contexts_ptr + row * context_stride, key_0, key_1, CONTEXT_WIDTH
+    )
+    groups = block_index * (BLOCK_SIZE // 4) + tl.arange(0, BLOCK_SIZE // 4)
+    output_0, output_1, output_2, output_3 = _philox_candidate_words(
+        groups, state_0, state_1, state_2, state_3, key_0, key_1
+    )
+    # Lay the per-group words out in token order: 4g+0, 4g+1, 4g+2, 4g+3.
+    words = tl.interleave(
+        tl.interleave(output_0, output_2),
+        tl.interleave(output_1, output_3),
+    )
+    # The uniform's leading binary digits are the word's leading bits.
+    differences = ((words & _UINT32_MASK) >> (32 - MESSAGE_BITS)) ^ message.to(
+        tl.uint32
+    )
+    agreements = tl.full((BLOCK_SIZE,), MESSAGE_BITS, dtype=tl.int32)
+    for bit in tl.static_range(MESSAGE_BITS):
+        agreements -= ((differences >> bit) & 1).to(tl.int32)
+    biased = logits + bias * agreements.to(tl.float32)
+    if skip_mask_ptr is not None:
+        biased = tl.where(tl.load(skip_mask_ptr + row) == 0, biased, logits)
+    tl.store(output_ptr + row * output_stride + candidate, biased, mask=mask)
+
+
+def philox_multibit_bias(
+    logits: torch.Tensor,
+    contexts: torch.Tensor,
+    key: int,
+    bias: float,
+    message: int,
+    message_bits: int,
+    *,
+    skip_mask: torch.Tensor | None = None,
+) -> torch.Tensor:
+    """Add ``bias`` to each logit for every one of the token's leading
+    ``message_bits`` detector-compatible PRF bits that agrees with
+    ``message``.
+
+    Returns float32 logits; rows in ``skip_mask`` are returned unchanged.
+    """
+    if logits.stride(-1) != 1:
+        logits = logits.contiguous()
+    if contexts.stride(-1) != 1:
+        contexts = contexts.contiguous()
+    if skip_mask is not None:
+        skip_mask = skip_mask.contiguous()
+    num_tokens, vocab_size = logits.shape
+    output = logits.new_empty(num_tokens, vocab_size, dtype=torch.float32)
+    if num_tokens == 0:
+        return output
+    block_size = 1024
+    _philox_multibit_bias_kernel[(num_tokens, triton.cdiv(vocab_size, block_size))](
+        output,
+        output.stride(0),
+        logits,
+        logits.stride(0),
+        contexts,
+        contexts.stride(0),
+        skip_mask,
+        key & _UINT32_MASK_VALUE,
+        key >> 32,
+        bias,
+        message,
+        vocab_size,
+        MESSAGE_BITS=message_bits,
+        CONTEXT_WIDTH=contexts.shape[-1],
+        BLOCK_SIZE=block_size,
+    )
+    return output

@@ -10,6 +10,11 @@ from vllm.v1.watermarking.gumbel import (
     GumbelWatermarkDetector,
     GumbelWatermarker,
 )
+from vllm.v1.watermarking.multibit_red_green import (
+    MultibitRedGreenWatermarkDetector,
+    MultibitRedGreenWatermarker,
+    MultibitWatermarkDetection,
+)
 from vllm.v1.watermarking.prfs import (
     PhiloxPRF,
     WatermarkPRF,
@@ -30,6 +35,9 @@ __all__ = [
     "DualKeyGumbelWatermarker",
     "GumbelWatermarkDetector",
     "GumbelWatermarker",
+    "MultibitRedGreenWatermarkDetector",
+    "MultibitRedGreenWatermarker",
+    "MultibitWatermarkDetection",
     "PhiloxPRF",
     "RedGreenWatermarkDetector",
     "RedGreenWatermarker",

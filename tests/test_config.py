@@ -3807,6 +3807,24 @@ def test_red_green_speculative_decoding_requires_target_only():
         config._check_supports_watermarking()
 
 
+def test_multibit_red_green_rejects_target_only_speculative_decoding():
+    config = _watermarked_vllm_config()
+    config.watermark_config = WatermarkConfig(
+        algorithm="multibit_red_green", key=42, allow_target_only_watermarking=True
+    )
+    config.speculative_config = SimpleNamespace(
+        method="mtp",
+        draft_sample_method="probabilistic",
+        rejection_sample_method="standard",
+        parallel_drafting=False,
+    )
+
+    with pytest.raises(
+        ValueError, match="'multibit_red_green'.*does not support speculative decoding"
+    ):
+        config._check_supports_watermarking()
+
+
 def test_target_only_red_green_is_not_reported_as_diluted(
     caplog_vllm, disable_log_dedup
 ):

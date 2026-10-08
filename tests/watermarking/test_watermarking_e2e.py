@@ -5,7 +5,11 @@ import pytest
 
 from vllm import SamplingParams
 from vllm.platforms import current_platform
-from vllm.v1.watermarking import GumbelWatermarkDetector, RedGreenWatermarkDetector
+from vllm.v1.watermarking import (
+    GumbelWatermarkDetector,
+    MultibitRedGreenWatermarkDetector,
+    RedGreenWatermarkDetector,
+)
 
 
 @pytest.mark.skipif(
@@ -20,8 +24,13 @@ from vllm.v1.watermarking import GumbelWatermarkDetector, RedGreenWatermarkDetec
             RedGreenWatermarkDetector,
             6.53e-15,
         ),
+        (
+            {"algorithm": "multibit_red_green", "key": 42, "context_width": 4},
+            MultibitRedGreenWatermarkDetector,
+            1.01e-5,
+        ),
     ],
-    ids=["gumbel", "red_green"],
+    ids=["gumbel", "red_green", "multibit_red_green"],
 )
 def test_llm_generated_sequence_is_watermarked(
     vllm_runner, watermark_config, detector_cls, recorded_p_value

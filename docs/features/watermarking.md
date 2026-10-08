@@ -108,6 +108,8 @@ watermarked. The watermark signal is diluted in proportion to the share of
 output tokens supplied by accepted drafts; rejected drafts do not dilute it
 because their recovery tokens are watermarked. The `red_green` is not diluted, as its
 verification uses the watermarked logits from the target model (see [Red-Green](#red-green-red-green-list)).
+`multibit_red_green` is rejected even with
+`allow_target_only_watermarking`.
 
 For `dual_key_gumbel`, `alpha` has no effect under speculative decoding. The
 speculative protocol selects the key for each token instead.
@@ -239,6 +241,37 @@ from vllm.v1.watermarking import RedGreenWatermarkDetector
 
 result = RedGreenWatermarkDetector(key=42, gamma=0.25).detect(token_ids)
 ```
+
+### Multi-bit red-green
+
+The multi-bit red-green watermark embeds a `message_bits`-bit message (default
+16) in the generated text. The key and the prior token context give every
+candidate token `message_bits` pseudorandom bits, and sampling adds `delta`
+(default 0.5) to its logit for every bit that agrees with the corresponding
+bit of `message`, after temperature scaling and top-k/top-p filtering. Each
+message bit thus splits the vocabulary into a green and a red half; with one
+bit this is the red-green watermark with `gamma` 0.5:
+
+```bash
+vllm serve MODEL \
+  --watermark-config '{"algorithm":"multibit_red_green","key":42,"message":12345}'
+```
+
+Detection needs only the key. Without the watermark, the number of ones at each
+bit position across the scored tokens is binomial; the reported p-value is that
+of the likelihood-ratio test of these counts, which is approximately
+chi-squared with `message_bits` degrees of freedom. Each message bit is decoded
+as the majority at its position:
+
+```python
+from vllm.v1.watermarking import MultibitRedGreenWatermarkDetector
+
+result = MultibitRedGreenWatermarkDetector(key=42).detect(token_ids)
+print(result.p_value, result.message)
+```
+
+The multi-bit red-green watermark does not support
+[speculative decoding](#speculative-decoding).
 
 ### SynthID-Text
 

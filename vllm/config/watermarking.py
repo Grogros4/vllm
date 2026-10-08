@@ -12,7 +12,9 @@ from vllm.logger import init_logger
 
 logger = init_logger(__name__)
 
-WatermarkingAlgorithm = Literal["gumbel", "dual_key_gumbel", "red_green"]
+WatermarkingAlgorithm = Literal[
+    "gumbel", "dual_key_gumbel", "red_green", "multibit_red_green"
+]
 WatermarkPRFName = Literal["philox"]
 WatermarkContextScope = Literal["none", "single_turn", "all"]
 
@@ -34,11 +36,18 @@ class WatermarkConfig:
     """Algorithm used to watermark generated text."""
     alpha: float = Field(default=0.1, ge=0, le=1)
     """Probability of selecting key B for dual-key watermarking."""
-    delta: float = Field(default=2.0, gt=0)
-    """Logit bias added to green-list tokens for red-green watermarking."""
+    delta: float | None = Field(default=None, gt=0)
+    """Logit bias of the red-green watermarks: added to green-list tokens for
+    `red_green` (default 2.0) and for every message bit a token agrees with for
+    `multibit_red_green` (default 0.5)."""
     gamma: float = Field(default=0.25, gt=0, lt=1)
     """Fraction of the vocabulary in each green list for red-green
     watermarking."""
+    message: int = Field(default=0, ge=0)
+    """Message embedded by multi-bit red-green watermarking, as an unsigned
+    integer of `message_bits` bits."""
+    message_bits: int = Field(default=16, ge=1, le=24)
+    """Number of message bits embedded by multi-bit red-green watermarking."""
     context_width: int = Field(default=4, ge=1)
     """Number of prior tokens used by the watermark PRF."""
     deduplicate_contexts: WatermarkContextScope = "single_turn"
@@ -65,6 +74,8 @@ class WatermarkConfig:
     def validate_watermark_settings(self) -> Self:
         if self.key > 2**64 - 1:
             raise ValueError("philox keys must fit in 64 bits")
+        if self.message >= 2**self.message_bits:
+            raise ValueError("message must fit in message_bits bits")
         history_is_too_short = (
             self.deduplicate_contexts_max_history is not None
             and self.deduplicate_contexts_max_history < _MIN_RECOMMENDED_DEDUP_HISTORY

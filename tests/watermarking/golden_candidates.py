@@ -22,6 +22,7 @@ from vllm.config.watermarking import (
 from vllm.v1.watermarking import (
     DualKeyGumbelWatermarkDetector,
     GumbelWatermarkDetector,
+    MultibitRedGreenWatermarkDetector,
     RedGreenWatermarkDetector,
     WatermarkDetection,
     WatermarkDetector,
@@ -30,7 +31,7 @@ from vllm.v1.watermarking import (
 )
 from vllm.v1.worker.gpu.sample.watermark import repeated_context_mask
 
-GOLDEN_SCHEMA_VERSION = 4
+GOLDEN_SCHEMA_VERSION = 5
 
 # JSON floats round-trip exactly, but libm differs by an ULP across builds.
 GOLDEN_FLOAT_RTOL = 1e-9
@@ -46,6 +47,8 @@ WATERMARK_CONFIG_FIELDS = (
     "alpha",
     "delta",
     "gamma",
+    "message",
+    "message_bits",
     "context_width",
     "deduplicate_contexts",
     "deduplicate_contexts_max_history",
@@ -104,6 +107,8 @@ class WatermarkingSchemeConfig:
     p_value_threshold: float = 0.01
     delta: float = 2.0
     gamma: float = 0.25
+    message: int = 0
+    message_bits: int = 16
 
 
 @dataclass(frozen=True)
@@ -185,10 +190,26 @@ def _create_red_green_detector(
     )
 
 
+def _create_multibit_red_green_detector(
+    key: int,
+    config: WatermarkingSchemeConfig,
+    prf: WatermarkPRFName,
+) -> WatermarkDetector:
+    return MultibitRedGreenWatermarkDetector(
+        key=key,
+        context_width=config.context_width,
+        p_value_threshold=config.p_value_threshold,
+        prf=prf,
+        deduplicate_contexts=config.detection_deduplicate_contexts,
+        message_bits=config.message_bits,
+    )
+
+
 DETECTOR_FACTORIES = {
     "gumbel": _create_gumbel_detector,
     "dual_key_gumbel": _create_dual_key_gumbel_detector,
     "red_green": _create_red_green_detector,
+    "multibit_red_green": _create_multibit_red_green_detector,
 }
 
 
@@ -224,6 +245,8 @@ class WatermarkingCandidate:
                 "p_value_threshold": self.scheme_config.p_value_threshold,
                 "delta": self.scheme_config.delta,
                 "gamma": self.scheme_config.gamma,
+                "message": self.scheme_config.message,
+                "message_bits": self.scheme_config.message_bits,
             },
             "prf": self.prf,
             "prf_version": prf_version,
@@ -271,6 +294,7 @@ class WatermarkingCandidate:
                 "deduplicate_contexts": detector.deduplicate_contexts,
                 "alpha": getattr(detector, "alpha", None),
                 "gamma": getattr(detector, "gamma", None),
+                "message_bits": getattr(detector, "message_bits", None),
                 "prf_key": str(detector.prf.key),
                 "key_b_prf_key": None if key_b_prf is None else str(key_b_prf.key),
             },
@@ -346,6 +370,7 @@ class WatermarkingCandidate:
                 "p_value_ratio": detection.p_value / threshold,
                 "num_scored_tokens": detection.num_scored_tokens,
                 "is_watermarked": detection.is_watermarked,
+                "message": getattr(detection, "message", None),
             },
         }
 
@@ -356,6 +381,8 @@ class WatermarkingCandidate:
             alpha=self.scheme_config.generation_alpha,
             delta=self.scheme_config.delta,
             gamma=self.scheme_config.gamma,
+            message=self.scheme_config.message,
+            message_bits=self.scheme_config.message_bits,
             context_width=self.scheme_config.context_width,
             deduplicate_contexts=(self.scheme_config.generation_deduplicate_contexts),
             deduplicate_contexts_max_history=(
@@ -458,6 +485,8 @@ def _candidate(
     p_value_threshold: float = 0.01,
     delta: float = 2.0,
     gamma: float = 0.25,
+    message: int = 0,
+    message_bits: int = 16,
     fixture: DeterministicGenerationFixture = BALANCED_FIXTURE,
 ) -> WatermarkingCandidate:
     return WatermarkingCandidate(
@@ -477,6 +506,8 @@ def _candidate(
             p_value_threshold=p_value_threshold,
             delta=delta,
             gamma=gamma,
+            message=message,
+            message_bits=message_bits,
         ),
         prf=prf,
         key=key,
@@ -671,6 +702,33 @@ WATERMARKING_CANDIDATES = (
         context_width=2,
         delta=4.0,
         gamma=0.5,
+    ),
+    _candidate(
+        "multibit-red-green-philox-key42-cw4",
+        "multibit_red_green",
+        42,
+        prf="philox",
+        delta=0.5,
+        message=0xBEEF,
+    ),
+    _candidate(
+        "multibit-red-green-philox-key42-cw4-wrong-key",
+        "multibit_red_green",
+        42,
+        prf="philox",
+        detection_key=43,
+        delta=0.5,
+        message=0xBEEF,
+    ),
+    _candidate(
+        "multibit-red-green-philox-key7-cw2-4bits",
+        "multibit_red_green",
+        7,
+        prf="philox",
+        context_width=2,
+        delta=1.0,
+        message=0b1011,
+        message_bits=4,
     ),
 )
 
@@ -890,7 +948,7 @@ def compare_entries(produced: dict, golden: dict) -> list[str]:
             expected_detection[field],
             differences,
         )
-    for field in ("num_scored_tokens", "is_watermarked"):
+    for field in ("num_scored_tokens", "is_watermarked", "message"):
         _compare_exact(
             f"detection.{field}",
             detection[field],

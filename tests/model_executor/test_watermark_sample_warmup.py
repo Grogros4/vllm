@@ -344,3 +344,29 @@ def test_warmup_failure_does_not_abort_startup(
         watermark_sample_warmup(_worker(WatermarkConfig(key=MASTER_KEY)))
 
     assert "Skipping watermark sampler warmup." in caplog.text
+
+
+def test_multibit_red_green_warms_its_bias_kernel(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    gumbel_calls = _capture_calls(monkeypatch)
+    calls: list[tuple[torch.dtype, bool, int]] = []
+    monkeypatch.setattr(
+        "vllm.v1.worker.gpu.sample.watermark.philox_multibit_bias",
+        lambda logits, contexts, key, bias, message, message_bits, skip_mask=None: (
+            calls.append((logits.dtype, skip_mask is not None, message_bits))
+        ),
+    )
+
+    watermark_sample_warmup(
+        _worker(
+            WatermarkConfig(
+                key=MASTER_KEY, algorithm="multibit_red_green", message_bits=8
+            )
+        )
+    )
+
+    assert gumbel_calls == []
+    assert sorted(calls, key=str) == sorted(
+        [(torch.bfloat16, True, 8), (torch.float32, True, 8)], key=str
+    )

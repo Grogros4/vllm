@@ -25,11 +25,14 @@
           "generation_alpha": 0.0,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 55,
         "p_value": 2.7410983620034455e-44,
         "p_value_ratio": 2.7410983620034455e-42,
@@ -112,6 +115,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": "9736202488081271922",
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "15691511769010696906",
           "type": "DualKeyGumbelWatermarkDetector"
@@ -125,6 +129,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -161,11 +167,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 64,
         "p_value": 1.234132682420224e-51,
         "p_value_ratio": 1.234132682420224e-49,
@@ -248,6 +257,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": "9736202488081271922",
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "15691511769010696906",
           "type": "DualKeyGumbelWatermarkDetector"
@@ -261,6 +271,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -297,11 +309,14 @@
           "generation_alpha": 0.5,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 64,
         "p_value": 6.733621085489817e-36,
         "p_value_ratio": 6.7336210854898174e-34,
@@ -384,6 +399,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": "10834826187781349534",
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "9864452095710749384",
           "type": "DualKeyGumbelWatermarkDetector"
@@ -397,6 +413,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -433,11 +451,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 64,
         "p_value": 1.6569954931292397e-49,
         "p_value_ratio": 1.6569954931292398e-47,
@@ -520,6 +541,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": "15826636237805488045",
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "37150756557148556",
           "type": "DualKeyGumbelWatermarkDetector"
@@ -533,6 +555,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -569,11 +593,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.003
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 8,
         "p_value": 0.002130807652336366,
         "p_value_ratio": 0.7102692174454553,
@@ -600,6 +627,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": "7720047515392181251",
+          "message_bits": null,
           "p_value_threshold": 0.003,
           "prf_key": "3490214442843822077",
           "type": "DualKeyGumbelWatermarkDetector"
@@ -613,6 +641,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -649,11 +679,14 @@
           "generation_alpha": 1.0,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 64,
         "p_value": 2.5582243247165326e-52,
         "p_value_ratio": 2.558224324716533e-50,
@@ -736,6 +769,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": "7399018451426338514",
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "11075965703501209888",
           "type": "DualKeyGumbelWatermarkDetector"
@@ -749,6 +783,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -785,11 +821,14 @@
           "generation_alpha": 0.4,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 64,
         "p_value": 5.9713149418801004e-43,
         "p_value_ratio": 5.9713149418801e-41,
@@ -872,6 +911,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": "7399018451426338514",
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "11075965703501209888",
           "type": "DualKeyGumbelWatermarkDetector"
@@ -885,6 +925,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -921,11 +963,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 13,
         "p_value": 0.002750266035191538,
         "p_value_ratio": 0.2750266035191538,
@@ -992,6 +1037,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": "15826636237805488045",
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "37150756557148556",
           "type": "DualKeyGumbelWatermarkDetector"
@@ -1005,6 +1051,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -1041,11 +1089,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "all",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 47,
         "p_value": 8.656644652657153e-07,
         "p_value_ratio": 8.656644652657152e-05,
@@ -1112,6 +1163,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": "15826636237805488045",
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "37150756557148556",
           "type": "DualKeyGumbelWatermarkDetector"
@@ -1125,6 +1177,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -1161,11 +1215,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 54,
         "p_value": 4.532248480235615e-47,
         "p_value_ratio": 4.532248480235615e-45,
@@ -1248,6 +1305,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": null,
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "0",
           "type": "GumbelWatermarkDetector"
@@ -1261,6 +1319,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -1297,11 +1357,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "none",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 64,
         "p_value": 1.1027575381260964e-49,
         "p_value_ratio": 1.1027575381260964e-47,
@@ -1384,6 +1447,7 @@
           "deduplicate_contexts": false,
           "gamma": null,
           "key_b_prf_key": null,
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "4294967296",
           "type": "GumbelWatermarkDetector"
@@ -1397,6 +1461,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -1433,11 +1499,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 64,
         "p_value": 7.128196280874065e-61,
         "p_value_ratio": 7.128196280874065e-59,
@@ -1520,6 +1589,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": null,
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "42",
           "type": "GumbelWatermarkDetector"
@@ -1533,6 +1603,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -1569,11 +1641,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "all",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 64,
         "p_value": 6.0283750962334736e-55,
         "p_value_ratio": 6.028375096233473e-53,
@@ -1656,6 +1731,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": null,
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "42",
           "type": "GumbelWatermarkDetector"
@@ -1669,6 +1745,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -1711,11 +1789,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "all",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 64,
         "p_value": 4.330336079473992e-56,
         "p_value_ratio": 4.3303360794739913e-54,
@@ -1798,6 +1879,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": null,
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "42",
           "type": "GumbelWatermarkDetector"
@@ -1811,6 +1893,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -1847,11 +1931,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "all",
           "generation_deduplicate_contexts_max_history": null,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 58,
         "p_value": 1.6692708568346358e-08,
         "p_value_ratio": 1.6692708568346358e-06,
@@ -1934,6 +2021,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": null,
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "42",
           "type": "GumbelWatermarkDetector"
@@ -1947,6 +2035,8 @@
           "deduplicate_contexts_max_history": null,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -1983,11 +2073,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": null,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 58,
         "p_value": 1.3019898400616044e-08,
         "p_value_ratio": 1.3019898400616043e-06,
@@ -2070,6 +2163,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": null,
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "42",
           "type": "GumbelWatermarkDetector"
@@ -2083,6 +2177,8 @@
           "deduplicate_contexts_max_history": null,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -2119,11 +2215,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 58,
         "p_value": 2.772032243308163e-09,
         "p_value_ratio": 2.772032243308163e-07,
@@ -2206,6 +2305,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": null,
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "42",
           "type": "GumbelWatermarkDetector"
@@ -2219,6 +2319,8 @@
           "deduplicate_contexts_max_history": 8,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -2255,11 +2357,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "none",
           "generation_deduplicate_contexts_max_history": null,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 64,
         "p_value": 2.136704912577492e-10,
         "p_value_ratio": 2.136704912577492e-08,
@@ -2342,6 +2447,7 @@
           "deduplicate_contexts": false,
           "gamma": null,
           "key_b_prf_key": null,
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "42",
           "type": "GumbelWatermarkDetector"
@@ -2355,6 +2461,8 @@
           "deduplicate_contexts_max_history": null,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -2391,11 +2499,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.0015
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 8,
         "p_value": 0.0009697880157637389,
         "p_value_ratio": 0.6465253438424926,
@@ -2422,6 +2533,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": null,
+          "message_bits": null,
           "p_value_threshold": 0.0015,
           "prf_key": "42",
           "type": "GumbelWatermarkDetector"
@@ -2435,6 +2547,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -2471,11 +2585,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": false,
+        "message": null,
         "num_scored_tokens": 64,
         "p_value": 0.5208447936891313,
         "p_value_ratio": 52.08447936891313,
@@ -2558,6 +2675,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": null,
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "43",
           "type": "GumbelWatermarkDetector"
@@ -2571,6 +2689,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -2607,11 +2727,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "all",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 64,
         "p_value": 6.166345567165398e-36,
         "p_value_ratio": 6.1663455671653984e-34,
@@ -2694,6 +2817,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": null,
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "18446744073709551615",
           "type": "GumbelWatermarkDetector"
@@ -2707,6 +2831,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -2743,11 +2869,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 15,
         "p_value": 6.97501804959627e-05,
         "p_value_ratio": 0.00697501804959627,
@@ -2814,6 +2943,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": null,
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "42",
           "type": "GumbelWatermarkDetector"
@@ -2827,6 +2957,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -2863,11 +2995,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "all",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 47,
         "p_value": 6.687298332875021e-08,
         "p_value_ratio": 6.687298332875021e-06,
@@ -2934,6 +3069,7 @@
           "deduplicate_contexts": true,
           "gamma": null,
           "key_b_prf_key": null,
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "42",
           "type": "GumbelWatermarkDetector"
@@ -2947,6 +3083,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -2955,6 +3093,432 @@
         "key_b_effective": null,
         "key_b_routed": null,
         "partial_context_skips": 4,
+        "routing_draws": 0
+      }
+    },
+    "multibit-red-green-philox-key42-cw4": {
+      "configuration": {
+        "detection_key": "42",
+        "fixture": {
+          "dominant_bias": 0,
+          "dominant_token": null,
+          "logit_denominator": 16,
+          "logit_modulus": 131,
+          "num_tokens": 64,
+          "prompt": [],
+          "vocabulary_size": 128
+        },
+        "key": "42",
+        "prf": "philox",
+        "prf_version": "philox4x32-10-v1",
+        "scheme": "multibit_red_green",
+        "scheme_config": {
+          "context_width": 4,
+          "delta": 0.5,
+          "detection_alpha": 0.1,
+          "detection_deduplicate_contexts": true,
+          "gamma": 0.25,
+          "generation_alpha": 0.1,
+          "generation_deduplicate_contexts": "single_turn",
+          "generation_deduplicate_contexts_max_history": 8192,
+          "message": 48879,
+          "message_bits": 16,
+          "p_value_threshold": 0.01
+        }
+      },
+      "detection": {
+        "is_watermarked": true,
+        "message": 48879,
+        "num_scored_tokens": 64,
+        "p_value": 2.0683212271068376e-35,
+        "p_value_ratio": 2.0683212271068376e-33,
+        "score": 207.82486199146754
+      },
+      "generation": [
+        7,
+        42,
+        105,
+        80,
+        76,
+        72,
+        29,
+        110,
+        109,
+        102,
+        80,
+        62,
+        12,
+        125,
+        121,
+        106,
+        120,
+        66,
+        34,
+        58,
+        72,
+        36,
+        18,
+        14,
+        49,
+        123,
+        48,
+        65,
+        40,
+        50,
+        57,
+        14,
+        24,
+        105,
+        2,
+        44,
+        8,
+        96,
+        25,
+        56,
+        70,
+        73,
+        23,
+        33,
+        54,
+        50,
+        85,
+        59,
+        31,
+        34,
+        122,
+        93,
+        100,
+        71,
+        67,
+        56,
+        98,
+        41,
+        83,
+        79,
+        75,
+        78,
+        81,
+        56
+      ],
+      "resolved": {
+        "derived_keys": {
+          "key_a": null,
+          "key_b": null
+        },
+        "detector": {
+          "alpha": null,
+          "context_width": 4,
+          "deduplicate_contexts": true,
+          "gamma": null,
+          "key_b_prf_key": null,
+          "message_bits": 16,
+          "p_value_threshold": 0.01,
+          "prf_key": "42",
+          "type": "MultibitRedGreenWatermarkDetector"
+        },
+        "watermark_config": {
+          "algorithm": "multibit_red_green",
+          "allow_target_only_watermarking": false,
+          "alpha": 0.1,
+          "context_width": 4,
+          "deduplicate_contexts": "single_turn",
+          "deduplicate_contexts_max_history": 8192,
+          "delta": 0.5,
+          "gamma": 0.25,
+          "message": 48879,
+          "message_bits": 16,
+          "prf": "philox"
+        }
+      },
+      "trace": {
+        "dedup_skips": 0,
+        "key_b_effective": null,
+        "key_b_routed": null,
+        "partial_context_skips": 0,
+        "routing_draws": 0
+      }
+    },
+    "multibit-red-green-philox-key42-cw4-wrong-key": {
+      "configuration": {
+        "detection_key": "43",
+        "fixture": {
+          "dominant_bias": 0,
+          "dominant_token": null,
+          "logit_denominator": 16,
+          "logit_modulus": 131,
+          "num_tokens": 64,
+          "prompt": [],
+          "vocabulary_size": 128
+        },
+        "key": "42",
+        "prf": "philox",
+        "prf_version": "philox4x32-10-v1",
+        "scheme": "multibit_red_green",
+        "scheme_config": {
+          "context_width": 4,
+          "delta": 0.5,
+          "detection_alpha": 0.1,
+          "detection_deduplicate_contexts": true,
+          "gamma": 0.25,
+          "generation_alpha": 0.1,
+          "generation_deduplicate_contexts": "single_turn",
+          "generation_deduplicate_contexts_max_history": 8192,
+          "message": 48879,
+          "message_bits": 16,
+          "p_value_threshold": 0.01
+        }
+      },
+      "detection": {
+        "is_watermarked": false,
+        "message": 51229,
+        "num_scored_tokens": 64,
+        "p_value": 0.36690194057696834,
+        "p_value_ratio": 36.690194057696836,
+        "score": 17.292755798006105
+      },
+      "generation": [
+        7,
+        42,
+        105,
+        80,
+        76,
+        72,
+        29,
+        110,
+        109,
+        102,
+        80,
+        62,
+        12,
+        125,
+        121,
+        106,
+        120,
+        66,
+        34,
+        58,
+        72,
+        36,
+        18,
+        14,
+        49,
+        123,
+        48,
+        65,
+        40,
+        50,
+        57,
+        14,
+        24,
+        105,
+        2,
+        44,
+        8,
+        96,
+        25,
+        56,
+        70,
+        73,
+        23,
+        33,
+        54,
+        50,
+        85,
+        59,
+        31,
+        34,
+        122,
+        93,
+        100,
+        71,
+        67,
+        56,
+        98,
+        41,
+        83,
+        79,
+        75,
+        78,
+        81,
+        56
+      ],
+      "resolved": {
+        "derived_keys": {
+          "key_a": null,
+          "key_b": null
+        },
+        "detector": {
+          "alpha": null,
+          "context_width": 4,
+          "deduplicate_contexts": true,
+          "gamma": null,
+          "key_b_prf_key": null,
+          "message_bits": 16,
+          "p_value_threshold": 0.01,
+          "prf_key": "43",
+          "type": "MultibitRedGreenWatermarkDetector"
+        },
+        "watermark_config": {
+          "algorithm": "multibit_red_green",
+          "allow_target_only_watermarking": false,
+          "alpha": 0.1,
+          "context_width": 4,
+          "deduplicate_contexts": "single_turn",
+          "deduplicate_contexts_max_history": 8192,
+          "delta": 0.5,
+          "gamma": 0.25,
+          "message": 48879,
+          "message_bits": 16,
+          "prf": "philox"
+        }
+      },
+      "trace": {
+        "dedup_skips": 0,
+        "key_b_effective": null,
+        "key_b_routed": null,
+        "partial_context_skips": 0,
+        "routing_draws": 0
+      }
+    },
+    "multibit-red-green-philox-key7-cw2-4bits": {
+      "configuration": {
+        "detection_key": "7",
+        "fixture": {
+          "dominant_bias": 0,
+          "dominant_token": null,
+          "logit_denominator": 16,
+          "logit_modulus": 131,
+          "num_tokens": 64,
+          "prompt": [],
+          "vocabulary_size": 128
+        },
+        "key": "7",
+        "prf": "philox",
+        "prf_version": "philox4x32-10-v1",
+        "scheme": "multibit_red_green",
+        "scheme_config": {
+          "context_width": 2,
+          "delta": 1.0,
+          "detection_alpha": 0.1,
+          "detection_deduplicate_contexts": true,
+          "gamma": 0.25,
+          "generation_alpha": 0.1,
+          "generation_deduplicate_contexts": "single_turn",
+          "generation_deduplicate_contexts_max_history": 8192,
+          "message": 11,
+          "message_bits": 4,
+          "p_value_threshold": 0.01
+        }
+      },
+      "detection": {
+        "is_watermarked": true,
+        "message": 11,
+        "num_scored_tokens": 64,
+        "p_value": 2.378276962985236e-44,
+        "p_value_ratio": 2.378276962985236e-42,
+        "score": 210.2237233356097
+      },
+      "generation": [
+        53,
+        24,
+        6,
+        69,
+        72,
+        33,
+        68,
+        110,
+        74,
+        10,
+        6,
+        94,
+        44,
+        100,
+        25,
+        85,
+        35,
+        24,
+        66,
+        108,
+        97,
+        15,
+        32,
+        53,
+        127,
+        77,
+        73,
+        69,
+        111,
+        36,
+        32,
+        99,
+        10,
+        105,
+        108,
+        5,
+        1,
+        75,
+        71,
+        21,
+        13,
+        105,
+        51,
+        5,
+        114,
+        110,
+        60,
+        84,
+        77,
+        112,
+        37,
+        72,
+        82,
+        46,
+        42,
+        109,
+        91,
+        55,
+        83,
+        125,
+        121,
+        110,
+        67,
+        24
+      ],
+      "resolved": {
+        "derived_keys": {
+          "key_a": null,
+          "key_b": null
+        },
+        "detector": {
+          "alpha": null,
+          "context_width": 2,
+          "deduplicate_contexts": true,
+          "gamma": null,
+          "key_b_prf_key": null,
+          "message_bits": 4,
+          "p_value_threshold": 0.01,
+          "prf_key": "7",
+          "type": "MultibitRedGreenWatermarkDetector"
+        },
+        "watermark_config": {
+          "algorithm": "multibit_red_green",
+          "allow_target_only_watermarking": false,
+          "alpha": 0.1,
+          "context_width": 2,
+          "deduplicate_contexts": "single_turn",
+          "deduplicate_contexts_max_history": 8192,
+          "delta": 1.0,
+          "gamma": 0.25,
+          "message": 11,
+          "message_bits": 4,
+          "prf": "philox"
+        }
+      },
+      "trace": {
+        "dedup_skips": 0,
+        "key_b_effective": null,
+        "key_b_routed": null,
+        "partial_context_skips": 0,
         "routing_draws": 0
       }
     },
@@ -2983,11 +3547,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 64,
         "p_value": 2.938735877055727e-39,
         "p_value_ratio": 2.938735877055727e-37,
@@ -3070,6 +3637,7 @@
           "deduplicate_contexts": true,
           "gamma": 0.25,
           "key_b_prf_key": null,
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "42",
           "type": "RedGreenWatermarkDetector"
@@ -3083,6 +3651,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -3119,11 +3689,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": false,
+        "message": null,
         "num_scored_tokens": 64,
         "p_value": 0.6600486821165976,
         "p_value_ratio": 66.00486821165975,
@@ -3206,6 +3779,7 @@
           "deduplicate_contexts": true,
           "gamma": 0.25,
           "key_b_prf_key": null,
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "43",
           "type": "RedGreenWatermarkDetector"
@@ -3219,6 +3793,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
           "gamma": 0.25,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -3255,11 +3831,14 @@
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "message": 0,
+          "message_bits": 16,
           "p_value_threshold": 0.01
         }
       },
       "detection": {
         "is_watermarked": true,
+        "message": null,
         "num_scored_tokens": 64,
         "p_value": 5.42101086242753e-20,
         "p_value_ratio": 5.421010862427531e-18,
@@ -3342,6 +3921,7 @@
           "deduplicate_contexts": true,
           "gamma": 0.5,
           "key_b_prf_key": null,
+          "message_bits": null,
           "p_value_threshold": 0.01,
           "prf_key": "7",
           "type": "RedGreenWatermarkDetector"
@@ -3355,6 +3935,8 @@
           "deduplicate_contexts_max_history": 8192,
           "delta": 4.0,
           "gamma": 0.5,
+          "message": 0,
+          "message_bits": 16,
           "prf": "philox"
         }
       },
@@ -3367,5 +3949,5 @@
       }
     }
   },
-  "schema_version": 4
+  "schema_version": 5
 }

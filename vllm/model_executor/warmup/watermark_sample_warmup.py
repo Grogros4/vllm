@@ -74,6 +74,19 @@ def _philox_red_green_watermarker(watermarker: Watermarker):
     return None
 
 
+def _philox_multibit_red_green_watermarker(watermarker: Watermarker):
+    """The watermarker when it launches the multi-bit kernel, else None."""
+    from vllm.v1.watermarking.multibit_red_green import MultibitRedGreenWatermarker
+    from vllm.v1.watermarking.prfs import PhiloxPRF
+
+    if (
+        isinstance(watermarker, MultibitRedGreenWatermarker)
+        and type(watermarker.prf) is PhiloxPRF
+    ):
+        return watermarker
+    return None
+
+
 @torch.inference_mode()
 def watermark_sample_warmup(worker: Worker) -> None:
     if getattr(worker.vllm_config, "watermark_config", None) is None:
@@ -88,6 +101,7 @@ def watermark_sample_warmup(worker: Worker) -> None:
     from vllm.v1.worker.gpu.sample.watermark import (
         philox_green_bias,
         philox_gumbel_sample,
+        philox_multibit_bias,
         philox_red_green_sample,
     )
 
@@ -106,7 +120,8 @@ def watermark_sample_warmup(worker: Worker) -> None:
     try:
         keys = _philox_sampler_keys(sampler.watermarker)
         red_green = _philox_red_green_watermarker(sampler.watermarker)
-        if not keys and red_green is None:
+        multibit = _philox_multibit_red_green_watermarker(sampler.watermarker)
+        if not keys and red_green is None and multibit is None:
             return
 
         # The sampler passes model-dtype logits through when no logits
@@ -197,6 +212,19 @@ def watermark_sample_warmup(worker: Worker) -> None:
                         red_green.delta,
                         red_green.gamma,
                         skip_mask=sampling_state["skip_mask"],
+                    )
+            if multibit is not None:
+                for use_skip_mask in with_skip_mask:
+                    philox_multibit_bias(
+                        logits,
+                        contexts,
+                        multibit.prf.key,
+                        multibit.delta,
+                        multibit.message,
+                        multibit.message_bits,
+                        skip_mask=(
+                            sampling_state["skip_mask"] if use_skip_mask else None
+                        ),
                     )
     except Exception:
         logger.warning("Skipping watermark sampler warmup.", exc_info=True)
