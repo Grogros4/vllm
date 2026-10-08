@@ -12,7 +12,9 @@ from vllm.logger import init_logger
 
 logger = init_logger(__name__)
 
-WatermarkingAlgorithm = Literal["gumbel", "dual_key_gumbel", "chi_squared"]
+WatermarkingAlgorithm = Literal[
+    "gumbel", "dual_key_gumbel", "chi_squared", "ppl_hard", "ppl_soft"
+]
 WatermarkPRFName = Literal["philox"]
 WatermarkContextScope = Literal["none", "single_turn", "all"]
 
@@ -37,6 +39,11 @@ class WatermarkConfig:
     delta: float = Field(default=1.0, gt=0)
     """Strength of the chi-squared watermark: how strongly sampling favors
     tokens with high watermark scores, at the cost of more distortion."""
+    epsilon: float = Field(default=0.0, ge=0)
+    """Perplexity budget of the perplexity watermarks: how many nats the
+    expected surprisal of a sampled token may exceed the entropy of the model's
+    next-token distribution, for every key (`ppl_hard`) or on average over keys
+    (`ppl_soft`)."""
     context_width: int = Field(default=4, ge=1)
     """Number of prior tokens used by the watermark PRF."""
     deduplicate_contexts: WatermarkContextScope = "single_turn"
@@ -67,11 +74,13 @@ class WatermarkConfig:
             self.deduplicate_contexts_max_history is not None
             and self.deduplicate_contexts_max_history < _MIN_RECOMMENDED_DEDUP_HISTORY
         )
-        if self.algorithm in ("gumbel", "dual_key_gumbel") and (
+        if self.algorithm in ("gumbel", "dual_key_gumbel", "ppl_soft") and (
             self.deduplicate_contexts == "none" or history_is_too_short
         ):
+            # These select each token deterministically from the key and context.
+            name = "Soft perplexity" if self.algorithm == "ppl_soft" else "Gumbel-max"
             logger.warning_once(
-                "Gumbel-max watermarking with context deduplication "
+                f"{name} watermarking with context deduplication "
                 "disabled or limited to fewer than "
                 f"{_MIN_RECOMMENDED_DEDUP_HISTORY} positions may increase the "
                 "frequency of degenerate generations, including repetition loops. "

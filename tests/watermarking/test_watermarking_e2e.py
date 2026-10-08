@@ -23,8 +23,18 @@ from vllm.v1.watermarking import (
             BinomialScoreWatermarkDetector,
             1.34e-31,
         ),
+        (
+            {"algorithm": "ppl_hard", "key": 42, "context_width": 4},
+            BinomialScoreWatermarkDetector,
+            5.28e-12,
+        ),
+        (
+            {"algorithm": "ppl_soft", "key": 42, "context_width": 4},
+            BinomialScoreWatermarkDetector,
+            3.79e-252,
+        ),
     ],
-    ids=["gumbel", "chi_squared"],
+    ids=["gumbel", "chi_squared", "ppl_hard", "ppl_soft"],
 )
 def test_llm_generated_sequence_is_watermarked(
     vllm_runner, watermark_config, detector_cls, recorded_p_value

@@ -7,6 +7,7 @@ from vllm.v1.watermarking.gumbel import (
     DualKeyGumbelWatermarker,
     GumbelWatermarker,
 )
+from vllm.v1.watermarking.perplexity import PPLHardWatermarker, PPLSoftWatermarker
 from vllm.v1.watermarking.watermarker import Watermarker
 
 
@@ -23,5 +24,13 @@ def create_watermarker(config: WatermarkConfig) -> Watermarker:
     if config.algorithm == "chi_squared":
         return ChiSquaredWatermarker(
             config.key, config.context_width, config.prf, config.delta
+        )
+    if config.algorithm == "ppl_hard":
+        return PPLHardWatermarker(
+            config.key, config.context_width, config.prf, config.epsilon
+        )
+    if config.algorithm == "ppl_soft":
+        return PPLSoftWatermarker(
+            config.key, config.context_width, config.prf, config.epsilon
         )
     raise ValueError(f"Unknown watermarking algorithm: {config.algorithm}")

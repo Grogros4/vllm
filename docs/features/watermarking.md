@@ -82,8 +82,8 @@ generation.
 - Trace replay replaces the sampled token and therefore cannot apply a
   watermark. The first watermarked trace replay request emits a server-side
   warning and runs without watermarking.
-- Parallel sampling (`n > 1`) is supported, but plain Gumbel candidates can be
-  identical while their contexts remain identical.
+- Parallel sampling (`n > 1`) is supported, but plain Gumbel and `ppl_soft`
+  candidates can be identical while their contexts remain identical.
 - Structured outputs and tool grammars are applied before watermark sampling.
   Restrictive constraints can reduce the statistical evidence available to a
   detector.
@@ -106,8 +106,8 @@ rejected before model loading. Set
 not watermarked, while target-side rejection recovery and bonus sampling remain
 watermarked. The watermark signal is diluted in proportion to the share of
 output tokens supplied by accepted drafts; rejected drafts do not dilute it
-because their recovery tokens are watermarked. `chi_squared` is rejected even
-with `allow_target_only_watermarking`.
+because their recovery tokens are watermarked. `chi_squared`, `ppl_hard` and
+`ppl_soft` are rejected even with `allow_target_only_watermarking`.
 
 For `dual_key_gumbel`, `alpha` has no effect under speculative decoding. The
 speculative protocol selects the key for each token instead.
@@ -225,6 +225,32 @@ result = BinomialScoreWatermarkDetector(key=42).detect(token_ids)
 
 The chi-squared watermark does not support
 [speculative decoding](#speculative-decoding).
+
+### Perplexity
+
+The perplexity watermarks of
+[Gloaguen et al. (2026)](https://arxiv.org/abs/2602.06754) use the same scores
+as the chi-squared watermark but bound how far the watermark raises the
+surprisal `-log p` of the sampled token, with a budget of `epsilon` nats per
+token (default 0):
+
+- `ppl_hard` samples from the distribution with the highest expected score
+  among those whose expected surprisal exceeds the entropy of `p` by at most
+  `epsilon` for every key. The solution puts all of its probability on one or
+  two tokens.
+- `ppl_soft` deterministically selects the token maximizing
+  `g_u + lambda * log p_u`, with `lambda` the smallest value for which the
+  expected surprisal exceeds the entropy of `p` by at most `epsilon` on average
+  over keys. At every step, `lambda` is estimated from 128 Monte Carlo draws of
+  the scores of the 4096 most probable tokens.
+
+```bash
+vllm serve MODEL \
+  --watermark-config '{"algorithm":"ppl_soft","key":42,"epsilon":0.0}'
+```
+
+Both are detected with `BinomialScoreWatermarkDetector`, like the chi-squared
+watermark, and neither supports [speculative decoding](#speculative-decoding).
 
 ### SynthID-Text
 

@@ -21,6 +21,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -123,6 +124,7 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -155,6 +157,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -257,6 +260,7 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -289,6 +293,7 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -391,6 +396,7 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -423,6 +429,7 @@
           "delta": 1.0,
           "detection_alpha": 0.0,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.0,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -525,6 +532,7 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -557,6 +565,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -659,6 +668,7 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -691,6 +701,7 @@
           "delta": 1.0,
           "detection_alpha": 0.5,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.5,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -793,6 +804,7 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -825,6 +837,7 @@
           "delta": 1.0,
           "detection_alpha": 0.2,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -927,6 +940,7 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -959,6 +973,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -1005,6 +1020,7 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -1037,6 +1053,7 @@
           "delta": 1.0,
           "detection_alpha": 1.0,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 1.0,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -1139,6 +1156,7 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -1171,6 +1189,7 @@
           "delta": 1.0,
           "detection_alpha": 0.4,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.4,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -1273,6 +1292,7 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -1305,6 +1325,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -1391,6 +1412,7 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -1423,6 +1445,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "all",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -1509,6 +1532,7 @@
           "deduplicate_contexts": "all",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -1541,6 +1565,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -1643,6 +1668,7 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -1675,6 +1701,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": false,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "none",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -1777,6 +1804,7 @@
           "deduplicate_contexts": "none",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -1809,6 +1837,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -1911,6 +1940,7 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -1943,6 +1973,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "all",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -2045,6 +2076,7 @@
           "deduplicate_contexts": "all",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -2083,6 +2115,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "all",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -2185,6 +2218,7 @@
           "deduplicate_contexts": "all",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -2217,6 +2251,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "all",
           "generation_deduplicate_contexts_max_history": null,
@@ -2319,6 +2354,7 @@
           "deduplicate_contexts": "all",
           "deduplicate_contexts_max_history": null,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -2351,6 +2387,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": null,
@@ -2453,6 +2490,7 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": null,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -2485,6 +2523,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8,
@@ -2587,6 +2626,7 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -2619,6 +2659,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": false,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "none",
           "generation_deduplicate_contexts_max_history": null,
@@ -2721,6 +2762,7 @@
           "deduplicate_contexts": "none",
           "deduplicate_contexts_max_history": null,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -2753,6 +2795,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -2799,6 +2842,7 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -2831,6 +2875,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -2933,6 +2978,7 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -2965,6 +3011,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "all",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -3067,6 +3114,7 @@
           "deduplicate_contexts": "all",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -3099,6 +3147,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -3185,6 +3234,7 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -3217,6 +3267,7 @@
           "delta": 1.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "all",
           "generation_deduplicate_contexts_max_history": 8192,
@@ -3303,6 +3354,7 @@
           "deduplicate_contexts": "all",
           "deduplicate_contexts_max_history": 8192,
           "delta": 1.0,
+          "epsilon": 0.0,
           "prf": "philox"
         }
       },
@@ -3311,6 +3363,550 @@
         "key_b_effective": null,
         "key_b_routed": null,
         "partial_context_skips": 4,
+        "routing_draws": 0
+      }
+    },
+    "ppl-hard-philox-key42-cw4": {
+      "configuration": {
+        "detection_key": "42",
+        "fixture": {
+          "dominant_bias": 0,
+          "dominant_token": null,
+          "logit_denominator": 16,
+          "logit_modulus": 131,
+          "num_tokens": 64,
+          "prompt": [],
+          "vocabulary_size": 128
+        },
+        "key": "42",
+        "prf": "philox",
+        "prf_version": "philox4x32-10-v1",
+        "scheme": "ppl_hard",
+        "scheme_config": {
+          "context_width": 4,
+          "delta": 1.0,
+          "detection_alpha": 0.1,
+          "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
+          "generation_alpha": 0.1,
+          "generation_deduplicate_contexts": "single_turn",
+          "generation_deduplicate_contexts_max_history": 8192,
+          "p_value_threshold": 0.01
+        }
+      },
+      "detection": {
+        "is_watermarked": true,
+        "num_scored_tokens": 64,
+        "p_value": 6.663528717999175e-57,
+        "p_value_ratio": 6.663528717999174e-55,
+        "score": 1304.0
+      },
+      "generation": [
+        46,
+        24,
+        45,
+        80,
+        40,
+        61,
+        25,
+        18,
+        56,
+        56,
+        73,
+        104,
+        79,
+        93,
+        50,
+        46,
+        113,
+        20,
+        48,
+        69,
+        100,
+        43,
+        78,
+        53,
+        123,
+        45,
+        23,
+        37,
+        61,
+        61,
+        113,
+        67,
+        31,
+        34,
+        55,
+        79,
+        121,
+        11,
+        120,
+        102,
+        109,
+        105,
+        115,
+        19,
+        100,
+        50,
+        39,
+        127,
+        34,
+        101,
+        12,
+        19,
+        75,
+        103,
+        81,
+        70,
+        45,
+        87,
+        125,
+        125,
+        39,
+        106,
+        113,
+        102
+      ],
+      "resolved": {
+        "derived_keys": {
+          "key_a": null,
+          "key_b": null
+        },
+        "detector": {
+          "alpha": null,
+          "context_width": 4,
+          "deduplicate_contexts": true,
+          "key_b_prf_key": null,
+          "num_trials": 30,
+          "p_value_threshold": 0.01,
+          "prf_key": "42",
+          "type": "BinomialScoreWatermarkDetector"
+        },
+        "watermark_config": {
+          "algorithm": "ppl_hard",
+          "allow_target_only_watermarking": false,
+          "alpha": 0.1,
+          "context_width": 4,
+          "deduplicate_contexts": "single_turn",
+          "deduplicate_contexts_max_history": 8192,
+          "delta": 1.0,
+          "epsilon": 0.0,
+          "prf": "philox"
+        }
+      },
+      "trace": {
+        "dedup_skips": 0,
+        "key_b_effective": null,
+        "key_b_routed": null,
+        "partial_context_skips": 0,
+        "routing_draws": 0
+      }
+    },
+    "ppl-hard-philox-key7-cw2-epsilon0.5": {
+      "configuration": {
+        "detection_key": "7",
+        "fixture": {
+          "dominant_bias": 0,
+          "dominant_token": null,
+          "logit_denominator": 16,
+          "logit_modulus": 131,
+          "num_tokens": 64,
+          "prompt": [],
+          "vocabulary_size": 128
+        },
+        "key": "7",
+        "prf": "philox",
+        "prf_version": "philox4x32-10-v1",
+        "scheme": "ppl_hard",
+        "scheme_config": {
+          "context_width": 2,
+          "delta": 1.0,
+          "detection_alpha": 0.1,
+          "detection_deduplicate_contexts": true,
+          "epsilon": 0.5,
+          "generation_alpha": 0.1,
+          "generation_deduplicate_contexts": "single_turn",
+          "generation_deduplicate_contexts_max_history": 8192,
+          "p_value_threshold": 0.01
+        }
+      },
+      "detection": {
+        "is_watermarked": true,
+        "num_scored_tokens": 63,
+        "p_value": 1.1433130873475059e-64,
+        "p_value_ratio": 1.1433130873475058e-62,
+        "score": 1309.0
+      },
+      "generation": [
+        67,
+        88,
+        73,
+        26,
+        12,
+        89,
+        18,
+        67,
+        116,
+        116,
+        30,
+        48,
+        51,
+        100,
+        110,
+        32,
+        13,
+        77,
+        55,
+        62,
+        79,
+        82,
+        3,
+        60,
+        70,
+        119,
+        104,
+        121,
+        111,
+        121,
+        32,
+        105,
+        24,
+        2,
+        108,
+        104,
+        75,
+        29,
+        0,
+        10,
+        70,
+        105,
+        30,
+        65,
+        54,
+        96,
+        124,
+        3,
+        112,
+        27,
+        19,
+        26,
+        43,
+        14,
+        127,
+        70,
+        27,
+        19,
+        76,
+        40,
+        4,
+        117,
+        45,
+        6
+      ],
+      "resolved": {
+        "derived_keys": {
+          "key_a": null,
+          "key_b": null
+        },
+        "detector": {
+          "alpha": null,
+          "context_width": 2,
+          "deduplicate_contexts": true,
+          "key_b_prf_key": null,
+          "num_trials": 30,
+          "p_value_threshold": 0.01,
+          "prf_key": "7",
+          "type": "BinomialScoreWatermarkDetector"
+        },
+        "watermark_config": {
+          "algorithm": "ppl_hard",
+          "allow_target_only_watermarking": false,
+          "alpha": 0.1,
+          "context_width": 2,
+          "deduplicate_contexts": "single_turn",
+          "deduplicate_contexts_max_history": 8192,
+          "delta": 1.0,
+          "epsilon": 0.5,
+          "prf": "philox"
+        }
+      },
+      "trace": {
+        "dedup_skips": 1,
+        "key_b_effective": null,
+        "key_b_routed": null,
+        "partial_context_skips": 0,
+        "routing_draws": 0
+      }
+    },
+    "ppl-soft-philox-key42-cw4": {
+      "configuration": {
+        "detection_key": "42",
+        "fixture": {
+          "dominant_bias": 0,
+          "dominant_token": null,
+          "logit_denominator": 16,
+          "logit_modulus": 131,
+          "num_tokens": 64,
+          "prompt": [],
+          "vocabulary_size": 128
+        },
+        "key": "42",
+        "prf": "philox",
+        "prf_version": "philox4x32-10-v1",
+        "scheme": "ppl_soft",
+        "scheme_config": {
+          "context_width": 4,
+          "delta": 1.0,
+          "detection_alpha": 0.1,
+          "detection_deduplicate_contexts": true,
+          "epsilon": 0.0,
+          "generation_alpha": 0.1,
+          "generation_deduplicate_contexts": "single_turn",
+          "generation_deduplicate_contexts_max_history": 8192,
+          "p_value_threshold": 0.01
+        }
+      },
+      "detection": {
+        "is_watermarked": true,
+        "num_scored_tokens": 64,
+        "p_value": 1.1133258310227283e-75,
+        "p_value_ratio": 1.1133258310227284e-73,
+        "score": 1357.0
+      },
+      "generation": [
+        46,
+        24,
+        45,
+        80,
+        14,
+        26,
+        22,
+        124,
+        21,
+        45,
+        16,
+        30,
+        5,
+        89,
+        0,
+        10,
+        27,
+        70,
+        69,
+        44,
+        92,
+        68,
+        123,
+        0,
+        20,
+        123,
+        101,
+        65,
+        114,
+        96,
+        78,
+        126,
+        27,
+        91,
+        62,
+        44,
+        86,
+        89,
+        116,
+        88,
+        116,
+        112,
+        76,
+        89,
+        82,
+        88,
+        99,
+        77,
+        38,
+        119,
+        111,
+        47,
+        32,
+        3,
+        7,
+        59,
+        66,
+        108,
+        75,
+        64,
+        75,
+        71,
+        35,
+        98
+      ],
+      "resolved": {
+        "derived_keys": {
+          "key_a": null,
+          "key_b": null
+        },
+        "detector": {
+          "alpha": null,
+          "context_width": 4,
+          "deduplicate_contexts": true,
+          "key_b_prf_key": null,
+          "num_trials": 30,
+          "p_value_threshold": 0.01,
+          "prf_key": "42",
+          "type": "BinomialScoreWatermarkDetector"
+        },
+        "watermark_config": {
+          "algorithm": "ppl_soft",
+          "allow_target_only_watermarking": false,
+          "alpha": 0.1,
+          "context_width": 4,
+          "deduplicate_contexts": "single_turn",
+          "deduplicate_contexts_max_history": 8192,
+          "delta": 1.0,
+          "epsilon": 0.0,
+          "prf": "philox"
+        }
+      },
+      "trace": {
+        "dedup_skips": 0,
+        "key_b_effective": null,
+        "key_b_routed": null,
+        "partial_context_skips": 0,
+        "routing_draws": 0
+      }
+    },
+    "ppl-soft-philox-key7-cw2-epsilon0.5": {
+      "configuration": {
+        "detection_key": "7",
+        "fixture": {
+          "dominant_bias": 0,
+          "dominant_token": null,
+          "logit_denominator": 16,
+          "logit_modulus": 131,
+          "num_tokens": 64,
+          "prompt": [],
+          "vocabulary_size": 128
+        },
+        "key": "7",
+        "prf": "philox",
+        "prf_version": "philox4x32-10-v1",
+        "scheme": "ppl_soft",
+        "scheme_config": {
+          "context_width": 2,
+          "delta": 1.0,
+          "detection_alpha": 0.1,
+          "detection_deduplicate_contexts": true,
+          "epsilon": 0.5,
+          "generation_alpha": 0.1,
+          "generation_deduplicate_contexts": "single_turn",
+          "generation_deduplicate_contexts_max_history": 8192,
+          "p_value_threshold": 0.01
+        }
+      },
+      "detection": {
+        "is_watermarked": true,
+        "num_scored_tokens": 64,
+        "p_value": 3.216966590595898e-77,
+        "p_value_ratio": 3.216966590595898e-75,
+        "score": 1361.0
+      },
+      "generation": [
+        67,
+        88,
+        32,
+        115,
+        44,
+        79,
+        117,
+        95,
+        63,
+        80,
+        115,
+        22,
+        111,
+        8,
+        63,
+        22,
+        102,
+        31,
+        105,
+        62,
+        86,
+        4,
+        60,
+        67,
+        5,
+        4,
+        41,
+        26,
+        15,
+        75,
+        85,
+        48,
+        49,
+        119,
+        94,
+        61,
+        81,
+        71,
+        113,
+        77,
+        37,
+        5,
+        92,
+        13,
+        121,
+        50,
+        14,
+        101,
+        33,
+        119,
+        107,
+        71,
+        68,
+        17,
+        115,
+        10,
+        23,
+        61,
+        1,
+        40,
+        81,
+        7,
+        56,
+        102
+      ],
+      "resolved": {
+        "derived_keys": {
+          "key_a": null,
+          "key_b": null
+        },
+        "detector": {
+          "alpha": null,
+          "context_width": 2,
+          "deduplicate_contexts": true,
+          "key_b_prf_key": null,
+          "num_trials": 30,
+          "p_value_threshold": 0.01,
+          "prf_key": "7",
+          "type": "BinomialScoreWatermarkDetector"
+        },
+        "watermark_config": {
+          "algorithm": "ppl_soft",
+          "allow_target_only_watermarking": false,
+          "alpha": 0.1,
+          "context_width": 2,
+          "deduplicate_contexts": "single_turn",
+          "deduplicate_contexts_max_history": 8192,
+          "delta": 1.0,
+          "epsilon": 0.5,
+          "prf": "philox"
+        }
+      },
+      "trace": {
+        "dedup_skips": 0,
+        "key_b_effective": null,
+        "key_b_routed": null,
+        "partial_context_skips": 0,
         "routing_draws": 0
       }
     }

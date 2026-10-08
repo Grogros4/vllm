@@ -45,6 +45,7 @@ WATERMARK_CONFIG_FIELDS = (
     "algorithm",
     "alpha",
     "delta",
+    "epsilon",
     "context_width",
     "deduplicate_contexts",
     "deduplicate_contexts_max_history",
@@ -102,6 +103,7 @@ class WatermarkingSchemeConfig:
     detection_deduplicate_contexts: bool = True
     p_value_threshold: float = 0.01
     delta: float = 1.0
+    epsilon: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -186,6 +188,8 @@ DETECTOR_FACTORIES = {
     "gumbel": _create_gumbel_detector,
     "dual_key_gumbel": _create_dual_key_gumbel_detector,
     "chi_squared": _create_binomial_score_detector,
+    "ppl_hard": _create_binomial_score_detector,
+    "ppl_soft": _create_binomial_score_detector,
 }
 
 
@@ -220,6 +224,7 @@ class WatermarkingCandidate:
                 ),
                 "p_value_threshold": self.scheme_config.p_value_threshold,
                 "delta": self.scheme_config.delta,
+                "epsilon": self.scheme_config.epsilon,
             },
             "prf": self.prf,
             "prf_version": prf_version,
@@ -351,6 +356,7 @@ class WatermarkingCandidate:
             key=self.key,
             alpha=self.scheme_config.generation_alpha,
             delta=self.scheme_config.delta,
+            epsilon=self.scheme_config.epsilon,
             context_width=self.scheme_config.context_width,
             deduplicate_contexts=(self.scheme_config.generation_deduplicate_contexts),
             deduplicate_contexts_max_history=(
@@ -452,6 +458,7 @@ def _candidate(
     detection_deduplicate_contexts: bool = True,
     p_value_threshold: float = 0.01,
     delta: float = 1.0,
+    epsilon: float = 0.0,
     fixture: DeterministicGenerationFixture = BALANCED_FIXTURE,
 ) -> WatermarkingCandidate:
     return WatermarkingCandidate(
@@ -470,6 +477,7 @@ def _candidate(
             detection_deduplicate_contexts=detection_deduplicate_contexts,
             p_value_threshold=p_value_threshold,
             delta=delta,
+            epsilon=epsilon,
         ),
         prf=prf,
         key=key,
@@ -663,6 +671,24 @@ WATERMARKING_CANDIDATES = (
         prf="philox",
         context_width=2,
         delta=2.0,
+    ),
+    _candidate("ppl-hard-philox-key42-cw4", "ppl_hard", 42, prf="philox"),
+    _candidate(
+        "ppl-hard-philox-key7-cw2-epsilon0.5",
+        "ppl_hard",
+        7,
+        prf="philox",
+        context_width=2,
+        epsilon=0.5,
+    ),
+    _candidate("ppl-soft-philox-key42-cw4", "ppl_soft", 42, prf="philox"),
+    _candidate(
+        "ppl-soft-philox-key7-cw2-epsilon0.5",
+        "ppl_soft",
+        7,
+        prf="philox",
+        context_width=2,
+        epsilon=0.5,
     ),
 )
 

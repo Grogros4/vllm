@@ -10,8 +10,9 @@ temperature-1.0 request is the first launch with model-dtype logits and pays
 the compilation inside inference. This pre-compiles every specialization the
 sampler path can launch for the configured watermark.
 
-The chi-squared watermarker launches its kernels from ``sample``, so for it
-the warmup samples once per logits dtype and skip-mask setting.
+The chi-squared and perplexity watermarkers launch their kernels from
+``sample``, so for them the warmup samples once per logits dtype and skip-mask
+setting.
 """
 
 from __future__ import annotations

@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
-"""Binomial token scores and their detector, used by the chi-squared watermark.
+"""Binomial token scores and their detector, used by the chi-squared and
+perplexity watermarks.
 
 In the constrained optimization framework of Gloaguen et al. (2026),
 https://arxiv.org/abs/2602.06754, the key and context give every token a score
@@ -97,6 +98,25 @@ def _level_mass(
     )
 
 
+def _level_best(
+    log_probs: torch.Tensor, scores: torch.Tensor, num_levels: int
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Reference implementation; the parity tests check the Triton kernel against it."""
+    num_rows, vocab_size = log_probs.shape
+    log_probs = log_probs.masked_fill(log_probs.isnan(), float("-inf"))
+    best = log_probs.new_full((num_rows, num_levels), float("-inf")).scatter_reduce_(
+        1, scores, log_probs, "amax"
+    )
+    vocabulary = torch.arange(vocab_size, device=log_probs.device).expand(num_rows, -1)
+    candidates = torch.where(
+        log_probs == best.gather(1, scores), vocabulary, vocab_size
+    )
+    token_ids = torch.full(
+        (num_rows, num_levels), vocab_size, dtype=torch.int64, device=log_probs.device
+    ).scatter_reduce_(1, scores, candidates, "amin")
+    return best, token_ids.masked_fill(best == float("-inf"), 0)
+
+
 class BinomialScoreWatermarker(Watermarker):
     """Base for watermarks that favor tokens with high binomial scores."""
 
@@ -147,6 +167,26 @@ class BinomialScoreWatermarker(Watermarker):
         scores = self.scores(contexts, log_probs.shape[-1])
         return _level_mass(log_probs, scores, self.num_trials + 1)
 
+    def level_best(
+        self, log_probs: torch.Tensor, contexts: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Largest log-probability among each row's tokens per score (-inf
+        without tokens) and the lowest token id attaining it (0 without tokens),
+        each [num_rows, num_trials + 1]. ``log_probs`` must be float32."""
+        if type(self.prf) is PhiloxPRF and log_probs.device.type == "cuda":
+            from vllm.v1.worker.gpu.sample.binomial_watermark import (
+                philox_level_best,
+            )
+
+            return philox_level_best(
+                log_probs,
+                contexts,
+                self.prf.key,
+                self._thresholds_on(log_probs.device),
+            )
+        scores = self.scores(contexts, log_probs.shape[-1])
+        return _level_best(log_probs, scores, self.num_trials + 1)
+
     def add_level_bias(
         self,
         logits: torch.Tensor,
@@ -178,7 +218,7 @@ class BinomialScoreWatermarker(Watermarker):
 
 
 class BinomialScoreWatermarkDetector(WatermarkDetector):
-    """Detect a chi-squared watermark with a binomial test.
+    """Detect a chi-squared or perplexity watermark with a binomial test.
 
     Under the null hypothesis each scored token's score is
     Binomial(num_trials, 1/2), independently, so the summed score is

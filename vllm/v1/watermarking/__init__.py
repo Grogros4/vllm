@@ -12,6 +12,7 @@ from vllm.v1.watermarking.gumbel import (
     GumbelWatermarkDetector,
     GumbelWatermarker,
 )
+from vllm.v1.watermarking.perplexity import PPLHardWatermarker, PPLSoftWatermarker
 from vllm.v1.watermarking.prfs import (
     PhiloxPRF,
     WatermarkPRF,
@@ -30,6 +31,8 @@ __all__ = [
     "DualKeyGumbelWatermarker",
     "GumbelWatermarkDetector",
     "GumbelWatermarker",
+    "PPLHardWatermarker",
+    "PPLSoftWatermarker",
     "PhiloxPRF",
     "SupportsSpeculativeDecoding",
     "WatermarkDetection",

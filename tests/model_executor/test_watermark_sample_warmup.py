@@ -300,16 +300,18 @@ def test_warmup_failure_does_not_abort_startup(
     assert "Skipping watermark sampler warmup." in caplog.text
 
 
+@pytest.mark.parametrize("algorithm", ["chi_squared", "ppl_hard", "ppl_soft"])
 @pytest.mark.parametrize(
     ("deduplicate_contexts", "skip_masks"),
     [("single_turn", {True}), ("none", {True, False})],
 )
-def test_chi_squared_warms_its_sampling_path(
+def test_binomial_score_watermarks_warm_their_sampling_path(
     monkeypatch: pytest.MonkeyPatch,
+    algorithm: str,
     deduplicate_contexts: str,
     skip_masks: set[bool],
 ) -> None:
-    """The chi-squared watermarker launches its kernels from ``sample``.
+    """These watermarkers launch their kernels from ``sample``.
 
     The warmup samples once per logits dtype and reachable skip-mask setting,
     and launches no Gumbel kernel.
@@ -318,7 +320,7 @@ def test_chi_squared_warms_its_sampling_path(
     worker = _worker(
         WatermarkConfig(
             key=MASTER_KEY,
-            algorithm="chi_squared",
+            algorithm=algorithm,
             deduplicate_contexts=deduplicate_contexts,
         )
     )
