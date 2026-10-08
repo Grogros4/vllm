@@ -3719,8 +3719,10 @@ def test_gumbel_rejects_speculative_decoding_without_target_only():
         config._check_supports_watermarking()
 
 
-@pytest.mark.parametrize("algorithm", ["chi_squared", "ppl_hard", "ppl_soft"])
-def test_binomial_score_watermarks_reject_target_only_speculative_decoding(
+@pytest.mark.parametrize(
+    "algorithm", ["chi_squared", "ppl_hard", "ppl_soft", "synthid"]
+)
+def test_watermarks_without_speculation_reject_target_only_speculative_decoding(
     algorithm,
 ):
     config = _watermarked_vllm_config()

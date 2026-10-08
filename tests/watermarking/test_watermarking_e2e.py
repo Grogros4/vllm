@@ -10,6 +10,7 @@ from vllm.v1.watermarking import (
     GumbelWatermarkDetector,
     MultibitRedGreenWatermarkDetector,
     RedGreenWatermarkDetector,
+    SynthIDWatermarkDetector,
 )
 
 
@@ -45,6 +46,11 @@ from vllm.v1.watermarking import (
             BinomialScoreWatermarkDetector,
             3.79e-252,
         ),
+        (
+            {"algorithm": "synthid", "key": 42, "context_width": 4},
+            SynthIDWatermarkDetector,
+            1.11e-77,
+        ),
     ],
     ids=[
         "gumbel",
@@ -53,6 +59,7 @@ from vllm.v1.watermarking import (
         "chi_squared",
         "ppl_hard",
         "ppl_soft",
+        "synthid",
     ],
 )
 def test_llm_generated_sequence_is_watermarked(

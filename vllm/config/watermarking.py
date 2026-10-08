@@ -21,6 +21,7 @@ WatermarkingAlgorithm = Literal[
     "chi_squared",
     "ppl_hard",
     "ppl_soft",
+    "synthid",
 ]
 LookaheadAggregator = Literal["pi1", "pi2", "max", "tsum", "min", "lin", "expsum"]
 WatermarkPRFName = Literal["philox"]
@@ -70,6 +71,11 @@ class WatermarkConfig:
     expected surprisal of a sampled token may exceed the entropy of the model's
     next-token distribution, for every key (`ppl_hard`) or on average over keys
     (`ppl_soft`)."""
+    depth: int = Field(default=30, ge=1, le=48)
+    """Number of tournament layers of SynthID watermarking."""
+    num_leaves: int = Field(default=2, ge=2)
+    """Number of draws per tournament match of SynthID watermarking. More than
+    two strengthens the watermark but distorts the output distribution."""
     context_width: int = Field(default=4, ge=1)
     """Number of prior tokens used by the watermark PRF."""
     deduplicate_contexts: WatermarkContextScope = "single_turn"

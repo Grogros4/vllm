@@ -13,6 +13,7 @@ from vllm.v1.watermarking.lookahead import LookaheadGumbelWatermarker
 from vllm.v1.watermarking.multibit_red_green import MultibitRedGreenWatermarker
 from vllm.v1.watermarking.perplexity import PPLHardWatermarker, PPLSoftWatermarker
 from vllm.v1.watermarking.red_green import RedGreenWatermarker
+from vllm.v1.watermarking.synthid import SynthIDWatermarker
 from vllm.v1.watermarking.watermarker import Watermarker
 
 
@@ -64,5 +65,13 @@ def create_watermarker(config: WatermarkConfig) -> Watermarker:
     if config.algorithm == "ppl_soft":
         return PPLSoftWatermarker(
             config.key, config.context_width, config.prf, config.epsilon
+        )
+    if config.algorithm == "synthid":
+        return SynthIDWatermarker(
+            config.key,
+            config.context_width,
+            config.prf,
+            config.depth,
+            config.num_leaves,
         )
     raise ValueError(f"Unknown watermarking algorithm: {config.algorithm}")

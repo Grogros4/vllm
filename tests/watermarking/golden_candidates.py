@@ -25,6 +25,7 @@ from vllm.v1.watermarking import (
     GumbelWatermarkDetector,
     MultibitRedGreenWatermarkDetector,
     RedGreenWatermarkDetector,
+    SynthIDWatermarkDetector,
     WatermarkDetection,
     WatermarkDetector,
     create_prf,
@@ -53,6 +54,8 @@ WATERMARK_CONFIG_FIELDS = (
     "aggregator",
     "aggregator_lambda",
     "epsilon",
+    "depth",
+    "num_leaves",
     "context_width",
     "deduplicate_contexts",
     "deduplicate_contexts_max_history",
@@ -115,6 +118,8 @@ class WatermarkingSchemeConfig:
     message: int = 0
     message_bits: int = 16
     epsilon: float = 0.0
+    depth: int = 30
+    num_leaves: int = 2
 
 
 @dataclass(frozen=True)
@@ -225,6 +230,21 @@ def _create_binomial_score_detector(
     )
 
 
+def _create_synthid_detector(
+    key: int,
+    config: WatermarkingSchemeConfig,
+    prf: WatermarkPRFName,
+) -> WatermarkDetector:
+    return SynthIDWatermarkDetector(
+        key=key,
+        context_width=config.context_width,
+        p_value_threshold=config.p_value_threshold,
+        prf=prf,
+        deduplicate_contexts=config.detection_deduplicate_contexts,
+        depth=config.depth,
+    )
+
+
 DETECTOR_FACTORIES = {
     "gumbel": _create_gumbel_detector,
     "dual_key_gumbel": _create_dual_key_gumbel_detector,
@@ -235,6 +255,7 @@ DETECTOR_FACTORIES = {
     "chi_squared": _create_binomial_score_detector,
     "ppl_hard": _create_binomial_score_detector,
     "ppl_soft": _create_binomial_score_detector,
+    "synthid": _create_synthid_detector,
 }
 
 
@@ -273,6 +294,8 @@ class WatermarkingCandidate:
                 "message": self.scheme_config.message,
                 "message_bits": self.scheme_config.message_bits,
                 "epsilon": self.scheme_config.epsilon,
+                "depth": self.scheme_config.depth,
+                "num_leaves": self.scheme_config.num_leaves,
             },
             "prf": self.prf,
             "prf_version": prf_version,
@@ -322,8 +345,13 @@ class WatermarkingCandidate:
                 "gamma": getattr(detector, "gamma", None),
                 "message_bits": getattr(detector, "message_bits", None),
                 "num_trials": getattr(detector, "num_trials", None),
-                "prf_key": str(detector.prf.key),
+                "depth": getattr(detector, "depth", None),
+                "prf_key": str(detector.prf.key) if hasattr(detector, "prf") else None,
                 "key_b_prf_key": None if key_b_prf is None else str(key_b_prf.key),
+                "g_value_prf_keys": [
+                    str(prf.key) for prf in getattr(detector, "prfs", [])
+                ]
+                or None,
             },
         }
 
@@ -411,6 +439,8 @@ class WatermarkingCandidate:
             message=self.scheme_config.message,
             message_bits=self.scheme_config.message_bits,
             epsilon=self.scheme_config.epsilon,
+            depth=self.scheme_config.depth,
+            num_leaves=self.scheme_config.num_leaves,
             context_width=self.scheme_config.context_width,
             deduplicate_contexts=(self.scheme_config.generation_deduplicate_contexts),
             deduplicate_contexts_max_history=(
@@ -516,6 +546,8 @@ def _candidate(
     message: int = 0,
     message_bits: int = 16,
     epsilon: float = 0.0,
+    depth: int = 30,
+    num_leaves: int = 2,
     fixture: DeterministicGenerationFixture = BALANCED_FIXTURE,
 ) -> WatermarkingCandidate:
     return WatermarkingCandidate(
@@ -538,6 +570,8 @@ def _candidate(
             message=message,
             message_bits=message_bits,
             epsilon=epsilon,
+            depth=depth,
+            num_leaves=num_leaves,
         ),
         prf=prf,
         key=key,
@@ -796,6 +830,23 @@ WATERMARKING_CANDIDATES = (
         prf="philox",
         context_width=2,
         epsilon=0.5,
+    ),
+    _candidate("synthid-philox-key42-cw4", "synthid", 42, prf="philox"),
+    _candidate(
+        "synthid-philox-key42-cw4-wrong-key",
+        "synthid",
+        42,
+        prf="philox",
+        detection_key=43,
+    ),
+    _candidate(
+        "synthid-philox-key7-cw2-depth4-leaves3",
+        "synthid",
+        7,
+        prf="philox",
+        context_width=2,
+        depth=4,
+        num_leaves=3,
     ),
 )
 

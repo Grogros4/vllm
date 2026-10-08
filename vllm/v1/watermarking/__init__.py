@@ -28,6 +28,10 @@ from vllm.v1.watermarking.red_green import (
     RedGreenWatermarkDetector,
     RedGreenWatermarker,
 )
+from vllm.v1.watermarking.synthid import (
+    SynthIDWatermarkDetector,
+    SynthIDWatermarker,
+)
 from vllm.v1.watermarking.watermarker import (
     SupportsSpeculativeDecoding,
     SupportsVerificationLogits,
@@ -53,6 +57,8 @@ __all__ = [
     "RedGreenWatermarker",
     "SupportsSpeculativeDecoding",
     "SupportsVerificationLogits",
+    "SynthIDWatermarkDetector",
+    "SynthIDWatermarker",
     "WatermarkDetection",
     "WatermarkDetector",
     "WatermarkPRF",

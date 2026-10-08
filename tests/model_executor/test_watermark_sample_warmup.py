@@ -417,12 +417,14 @@ def test_multibit_red_green_warms_its_bias_kernel(
     )
 
 
-@pytest.mark.parametrize("algorithm", ["chi_squared", "ppl_hard", "ppl_soft"])
+@pytest.mark.parametrize(
+    "algorithm", ["chi_squared", "ppl_hard", "ppl_soft", "synthid"]
+)
 @pytest.mark.parametrize(
     ("deduplicate_contexts", "skip_masks"),
     [("single_turn", {True}), ("none", {True, False})],
 )
-def test_binomial_score_watermarks_warm_their_sampling_path(
+def test_sampling_watermarks_warm_their_sampling_path(
     monkeypatch: pytest.MonkeyPatch,
     algorithm: str,
     deduplicate_contexts: str,

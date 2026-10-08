@@ -1362,6 +1362,7 @@ class VllmConfig:
                 "chi_squared",
                 "ppl_hard",
                 "ppl_soft",
+                "synthid",
             ):
                 raise ValueError(
                     f"The '{watermark_config.algorithm}' watermarking algorithm "

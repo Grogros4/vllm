@@ -99,6 +99,7 @@ def make_gpu_watermark_sampler(monkeypatch):
         "chi_squared",
         "ppl_hard",
         "ppl_soft",
+        "synthid",
     ],
 )
 def test_watermarker_contract(algorithm: str):
