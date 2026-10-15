@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
-"""Red-green watermark generation and detection primitives."""
+"""Red-green and unigram watermark generation and detection primitives."""
 
 import math
 
@@ -200,3 +200,45 @@ class RedGreenWatermarkDetector(WatermarkDetector):
 
     def _get_p_value(self, score: float, num_scored_tokens: int) -> float:
         return _binomial_survival(round(score), num_scored_tokens, self.gamma)
+
+
+class UnigramWatermarker(RedGreenWatermarker):
+    """Unigram watermark of Zhao et al. (2023), https://arxiv.org/abs/2306.17439:
+    red-green with one green list, chosen by the key alone, for every position.
+
+    The green list takes no context, so there is no context to repeat and every
+    token is watermarked.
+    """
+
+    def __init__(
+        self,
+        key: int,
+        prf: WatermarkPRF | WatermarkPRFName = "philox",
+        delta: float = 2.0,
+        gamma: float = 0.5,
+    ) -> None:
+        super().__init__(key, prf=prf, delta=delta, gamma=gamma)
+        # The PRF sees an empty context: one green list for every position.
+        self._context_width = 0
+
+
+class UnigramWatermarkDetector(RedGreenWatermarkDetector):
+    """Detect a unigram watermark with a one-sided binomial test over the
+    distinct tokens of the text: with one green list, the repeats of a token
+    carry no new evidence."""
+
+    def __init__(
+        self,
+        key: int,
+        p_value_threshold: float = 0.01,
+        prf: WatermarkPRF | WatermarkPRFName = "philox",
+        gamma: float = 0.5,
+    ) -> None:
+        super().__init__(key, p_value_threshold=p_value_threshold, prf=prf, gamma=gamma)
+        self.context_width = 0
+
+    def _prepare_inputs(
+        self, token_ids: list[int]
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        targets = torch.tensor(list(dict.fromkeys(token_ids)), dtype=torch.int64)
+        return targets.new_empty(len(targets), 0), targets

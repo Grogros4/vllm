@@ -28,6 +28,7 @@ from vllm.v1.watermarking import (
     RedGreenWatermarkDetector,
     SynthIDWatermarkDetector,
     TextGrainWatermarkDetector,
+    UnigramWatermarkDetector,
     WatermarkDetection,
     WatermarkDetector,
     create_prf,
@@ -35,7 +36,7 @@ from vllm.v1.watermarking import (
 )
 from vllm.v1.worker.gpu.sample.watermark import repeated_context_mask
 
-GOLDEN_SCHEMA_VERSION = 7
+GOLDEN_SCHEMA_VERSION = 8
 
 # JSON floats round-trip exactly, but libm differs by an ULP across builds.
 GOLDEN_FLOAT_RTOL = 1e-9
@@ -284,10 +285,24 @@ def _create_gaussian_copula_detector(
     )
 
 
+def _create_unigram_detector(
+    key: int,
+    config: WatermarkingSchemeConfig,
+    prf: WatermarkPRFName,
+) -> WatermarkDetector:
+    return UnigramWatermarkDetector(
+        key=key,
+        p_value_threshold=config.p_value_threshold,
+        prf=prf,
+        gamma=config.gamma,
+    )
+
+
 DETECTOR_FACTORIES = {
     "gumbel": _create_gumbel_detector,
     "dual_key_gumbel": _create_dual_key_gumbel_detector,
     "red_green": _create_red_green_detector,
+    "unigram": _create_unigram_detector,
     "multibit_red_green": _create_multibit_red_green_detector,
     # Without speculation lookahead Gumbel-max samples like Gumbel-max.
     "lookahead_gumbel": _create_gumbel_detector,
@@ -413,7 +428,7 @@ class WatermarkingCandidate:
         key_b_effective = 0
 
         for position in range(self.fixture.num_tokens):
-            context = self._context(generated)
+            context = self._context(generated, watermarker.context_width)
             skip_mask = self._skip_mask(generated, context)
             skipped = skip_mask is not None and bool(skip_mask.item())
             if skipped:
@@ -506,16 +521,16 @@ class WatermarkingCandidate:
             self.prf,
         )
 
-    def _context(self, generated: list[int]) -> torch.Tensor:
-        width = self.scheme_config.context_width
+    def _context(self, generated: list[int], width: int) -> torch.Tensor:
         padded = [-1] * width + generated
-        return torch.tensor([padded[-width:]], dtype=torch.int64)
+        return torch.tensor([padded[len(generated) :]], dtype=torch.int64)
 
     def _skip_mask(
         self, generated: list[int], context: torch.Tensor
     ) -> torch.Tensor | None:
         scope = self.scheme_config.generation_deduplicate_contexts
-        if scope == "none":
+        # As GPUWatermarkSampler: a context-free watermark has no context to repeat.
+        if scope == "none" or context.shape[-1] == 0:
             return None
 
         prompt_len = len(self.fixture.prompt)
@@ -824,6 +839,23 @@ WATERMARKING_CANDIDATES = (
         context_width=2,
         delta=4.0,
         gamma=0.5,
+    ),
+    _candidate("unigram-philox-key42", "unigram", 42, prf="philox", gamma=0.5),
+    _candidate(
+        "unigram-philox-key42-wrong-key",
+        "unigram",
+        42,
+        prf="philox",
+        gamma=0.5,
+        detection_key=43,
+    ),
+    _candidate(
+        "unigram-philox-key7-delta4-gamma0.25",
+        "unigram",
+        7,
+        prf="philox",
+        delta=4.0,
+        gamma=0.25,
     ),
     _candidate(
         "multibit-red-green-philox-key42-cw4",

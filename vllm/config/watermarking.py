@@ -16,6 +16,7 @@ WatermarkingAlgorithm = Literal[
     "gumbel",
     "dual_key_gumbel",
     "red_green",
+    "unigram",
     "multibit_red_green",
     "lookahead_gumbel",
     "chi_squared",
@@ -54,12 +55,12 @@ class WatermarkConfig:
     delta: float | None = Field(default=None, gt=0)
     """Strength of the logit-bias and chi-squared watermarks; each algorithm
     has its own default: the bias added to green-list tokens for `red_green`
-    (2.0) and for every message bit a token agrees with for
+    and `unigram` (2.0) and for every message bit a token agrees with for
     `multibit_red_green` (0.5), and how strongly `chi_squared` favors tokens
     with high watermark scores (1.0)."""
-    gamma: float = Field(default=0.25, gt=0, lt=1)
-    """Fraction of the vocabulary in each green list for red-green
-    watermarking."""
+    gamma: float | None = Field(default=None, gt=0, lt=1)
+    """Fraction of the vocabulary in each green list, whose default depends on
+    the algorithm: 0.25 for `red_green` and 0.5 for `unigram`."""
     message: int = Field(default=0, ge=0)
     """Message embedded by multi-bit red-green watermarking, as an unsigned
     integer of `message_bits` bits."""
@@ -90,7 +91,8 @@ class WatermarkConfig:
     num_columns: int = Field(default=16, ge=2)
     """Number of keyed columns textGrain couples the blocks to."""
     context_width: int = Field(default=4, ge=1)
-    """Number of prior tokens used by the watermark PRF."""
+    """Number of prior tokens used by the watermark PRF. Ignored by `unigram`,
+    whose green list takes no context."""
     deduplicate_contexts: WatermarkContextScope = "single_turn"
     """Which history is searched for a repeated context before a token is
     sampled; a repeated context is sampled without the watermark. `none`

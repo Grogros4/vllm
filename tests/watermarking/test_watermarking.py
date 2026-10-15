@@ -95,6 +95,7 @@ def make_gpu_watermark_sampler(monkeypatch):
         "gumbel",
         "dual_key_gumbel",
         "red_green",
+        "unigram",
         "multibit_red_green",
         "chi_squared",
         "ppl_hard",
@@ -412,6 +413,41 @@ def test_gpu_sampler_respects_mixed_request_watermarking(
     assert torch.equal(sampled, torch.tensor([3, 7]))
     assert torch.equal(output_logits[0], logits[0])
     assert torch.equal(output_logits[1], torch.full((8,), 10.0))
+
+
+def test_gpu_sampler_watermarks_every_token_of_a_context_free_watermark(
+    make_gpu_watermark_sampler,
+):
+    """A context-free watermark, such as unigram, has no context to repeat:
+    the sampler passes empty contexts and skips no row."""
+
+    class CapturingWatermarker:
+        context_width = 0
+        captured: tuple = ()
+
+        def sample(self, logits, contexts, random_sampler=None, skip_mask=None):
+            self.captured = (contexts, skip_mask)
+            return WatermarkSample(logits.argmax(dim=-1), logits)
+
+    watermarker = CapturingWatermarker()
+    sampler = make_gpu_watermark_sampler(watermarker, max_num_reqs=1)
+    sampler.add_request(0, SamplingParams(watermarking=True))
+    sampler.apply_staged_writes()
+
+    sampler._sample_random(
+        torch.zeros(1, 8),
+        torch.tensor([0]),
+        np.array([0]),
+        torch.zeros(1, dtype=torch.int64),
+        None,
+        None,
+        False,
+    )
+
+    contexts, skip_mask = watermarker.captured
+    assert sampler.deduplicate_contexts == "none"
+    assert contexts.shape == (1, 0)
+    assert skip_mask is None
 
 
 def test_gpu_sampler_filters_top_k_top_p_before_watermarking(

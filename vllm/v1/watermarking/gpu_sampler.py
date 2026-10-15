@@ -32,6 +32,9 @@ class GPUWatermarkSampler(Sampler):
     ) -> None:
         super().__init__(*args, **kwargs)
         self.watermarker = watermarker
+        # A context-free watermark, such as unigram, has no context to repeat.
+        if watermarker.context_width == 0:
+            deduplicate_contexts = "none"
         self.deduplicate_contexts = deduplicate_contexts
         self.deduplicate_contexts_max_history = deduplicate_contexts_max_history
         self.watermarking = UvaBackedTensor(

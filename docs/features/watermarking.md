@@ -244,6 +244,33 @@ from vllm.v1.watermarking import RedGreenWatermarkDetector
 result = RedGreenWatermarkDetector(key=42, gamma=0.25).detect(token_ids)
 ```
 
+### Unigram
+
+The Unigram watermark of
+[Zhao et al. (2023)](https://arxiv.org/abs/2306.17439) is Red-Green with one
+green list for every position, chosen by the key alone. Without a context there
+is nothing to repeat, so every generated token is watermarked, and
+`context_width` and `deduplicate_contexts` have no effect. `delta` defaults to
+2.0 and `gamma` to 0.5, as in the paper:
+
+```bash
+vllm serve MODEL \
+  --watermark-config '{"algorithm":"unigram","key":42,"delta":2.0,"gamma":0.5}'
+```
+
+Speculative decoding works as for Red-Green, with
+`"allow_target_only_watermarking": true`.
+
+With one green list, the repeats of a token carry no new evidence, so the
+detector scores each distinct token of the text once and reports the binomial
+tail probability of at least that many green tokens:
+
+```python
+from vllm.v1.watermarking import UnigramWatermarkDetector
+
+result = UnigramWatermarkDetector(key=42, gamma=0.5).detect(token_ids)
+```
+
 ### Multi-bit red-green
 
 The multi-bit red-green watermark embeds a `message_bits`-bit message (default

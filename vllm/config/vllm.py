@@ -1382,9 +1382,10 @@ class VllmConfig:
             if (
                 watermark_config.allow_target_only_watermarking
                 and not watermark_config.supports_speculative_decoding
-                # Red-green verification uses its watermarked logits, so
-                # accepted draft tokens follow the watermarked distribution.
-                and watermark_config.algorithm != "red_green"
+                # Red-green and unigram verification use their watermarked
+                # logits, so accepted draft tokens follow the watermarked
+                # distribution.
+                and watermark_config.algorithm not in ("red_green", "unigram")
             ):
                 logger.warning_once(
                     "Target-only watermarking leaves accepted draft tokens "

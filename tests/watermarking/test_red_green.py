@@ -13,6 +13,8 @@ from vllm.platforms import current_platform
 from vllm.v1.watermarking import (
     RedGreenWatermarkDetector,
     RedGreenWatermarker,
+    UnigramWatermarkDetector,
+    UnigramWatermarker,
     create_watermarker,
 )
 from vllm.v1.watermarking.gpu_sampler import GPUWatermarkSampler
@@ -120,7 +122,7 @@ def _generate(watermarker: RedGreenWatermarker, num_tokens: int, vocab_size: int
     width = watermarker.context_width
     token_ids: list[int] = []
     for _ in range(num_tokens):
-        context = ([-1] * width + token_ids)[-width:]
+        context = ([-1] * width + token_ids)[len(token_ids) :]
         logits = watermarker.watermark_logits(
             torch.zeros(1, vocab_size), torch.tensor([context])
         )
@@ -274,17 +276,22 @@ def test_rejection_sampler_verifies_the_watermarked_logits(monkeypatch):
     assert "watermark_key" not in calls["kwargs"]
 
 
+def _kernel_watermarker(context_width: int, **kwargs) -> RedGreenWatermarker:
+    """Red-green of the given context width; width 0 is unigram."""
+    if context_width == 0:
+        return UnigramWatermarker(key=2**40 + 7, **kwargs)
+    return RedGreenWatermarker(key=2**40 + 7, context_width=context_width, **kwargs)
+
+
 @pytest.mark.skipif(
     not current_platform.is_cuda_alike(), reason="requires a CUDA-like accelerator"
 )
 @pytest.mark.parametrize("dtype", [torch.float32, torch.bfloat16])
-@pytest.mark.parametrize("context_width", [1, 4, 5])
+@pytest.mark.parametrize("context_width", [0, 1, 4, 5])
 def test_green_bias_kernel_matches_the_prf(dtype: torch.dtype, context_width: int):
     from vllm.v1.worker.gpu.sample.watermark import philox_green_bias
 
-    watermarker = RedGreenWatermarker(
-        key=2**40 + 7, context_width=context_width, gamma=0.3
-    )
+    watermarker = _kernel_watermarker(context_width, gamma=0.3)
     vocab_size = 50_257  # not a multiple of the kernel's block size
     logits = torch.randn(6, vocab_size, device="cuda").to(dtype)
     logits[:, :10] = -torch.inf
@@ -305,13 +312,11 @@ def test_green_bias_kernel_matches_the_prf(dtype: torch.dtype, context_width: in
 )
 @pytest.mark.parametrize("use_fp64", [False, True])
 @pytest.mark.parametrize("dtype", [torch.float32, torch.bfloat16])
-@pytest.mark.parametrize("context_width", [1, 5])
+@pytest.mark.parametrize("context_width", [0, 1, 5])
 def test_fused_sample_draws_the_token_of_the_biased_logits(
     dtype: torch.dtype, context_width: int, use_fp64: bool
 ):
-    watermarker = RedGreenWatermarker(
-        key=2**40 + 7, context_width=context_width, delta=2.5, gamma=0.3
-    )
+    watermarker = _kernel_watermarker(context_width, delta=2.5, gamma=0.3)
     generator = torch.Generator(device="cuda").manual_seed(0)
     num_rows, vocab_size = 64, 50_257  # not a multiple of the kernel's block size
     logits = torch.randn(num_rows, vocab_size, device="cuda", generator=generator)
@@ -339,3 +344,45 @@ def test_fused_sample_draws_the_token_of_the_biased_logits(
 
     assert torch.equal(sample.token_ids, random_sampler(biased))
     assert sample.logits is logits
+
+
+def test_unigram_config_uses_the_paper_defaults():
+    watermarker = create_watermarker(
+        WatermarkConfig(algorithm="unigram", key=42, context_width=3)
+    )
+    red_green = create_watermarker(WatermarkConfig(algorithm="red_green", key=42))
+
+    assert isinstance(watermarker, UnigramWatermarker)
+    assert watermarker.context_width == 0
+    assert (watermarker.delta, watermarker.gamma) == (2.0, 0.5)
+    assert (red_green.delta, red_green.gamma) == (2.0, 0.25)
+
+
+def test_unigram_detector_scores_each_distinct_token_once():
+    detector = UnigramWatermarkDetector(key=42, gamma=0.5)
+    token_ids = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]
+    distinct = [3, 1, 4, 5, 9, 2, 6]
+    green = UnigramWatermarker(key=42, gamma=0.5).green_list(
+        torch.empty(1, 0, dtype=torch.int64), 10
+    )[0]
+
+    detection = detector.detect(token_ids)
+
+    assert detection.num_scored_tokens == len(distinct)
+    assert detection.score == green[distinct].sum().item()
+
+
+def test_unigram_detector_recognizes_watermarked_tokens():
+    token_ids = _generate(UnigramWatermarker(key=42, delta=4.0), 128, 1000)
+    detector = UnigramWatermarkDetector(key=42)
+
+    watermarked = detector.detect(token_ids)
+    unwatermarked = detector.detect(
+        torch.randint(
+            0, 1000, (128,), generator=torch.Generator().manual_seed(1)
+        ).tolist()
+    )
+
+    assert watermarked.p_value < 1e-10
+    assert not unwatermarked.is_watermarked
+    assert not UnigramWatermarkDetector(key=43).detect(token_ids).is_watermarked

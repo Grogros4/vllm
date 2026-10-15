@@ -237,20 +237,26 @@ def test_dedup_none_also_warms_the_mask_free_specialization(
             assert "temperatures" not in call
 
 
+@pytest.mark.parametrize(("algorithm", "width"), [("red_green", 4), ("unigram", 0)])
 def test_red_green_warms_its_sampler_and_verification_kernels(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, algorithm: str, width: int
 ) -> None:
-    """Red-green samples with the fused kernel, forwarding the sampler's fp64
-    setting with and without a skip mask; speculative decoding also launches
-    the bias kernel, which verifies drafts against the biased logits."""
+    """Red-green, and unigram with its empty contexts, sample with the fused
+    kernel, forwarding the sampler's fp64 setting with and without a skip mask;
+    speculative decoding also launches the bias kernel, which verifies drafts
+    against the biased logits."""
     calls: dict[str, list[dict]] = {"sample": [], "bias": []}
 
     def fake_sample(logits, contexts, key, *args, **kwargs):
-        calls["sample"].append({"logits": logits, "key": key, **kwargs})
+        calls["sample"].append(
+            {"logits": logits, "key": key, "width": contexts.shape[-1], **kwargs}
+        )
         return torch.zeros(logits.shape[0], dtype=torch.int64)
 
     def fake_bias(logits, contexts, key, *args, **kwargs):
-        calls["bias"].append({"logits": logits, "key": key, **kwargs})
+        calls["bias"].append(
+            {"logits": logits, "key": key, "width": contexts.shape[-1], **kwargs}
+        )
         return logits.float()
 
     monkeypatch.setattr(
@@ -260,7 +266,7 @@ def test_red_green_warms_its_sampler_and_verification_kernels(
         "vllm.v1.worker.gpu.sample.watermark.philox_green_bias", fake_bias
     )
     config = WatermarkConfig(
-        key=MASTER_KEY, algorithm="red_green", deduplicate_contexts="none"
+        key=MASTER_KEY, algorithm=algorithm, deduplicate_contexts="none"
     )
 
     watermark_sample_warmup(_worker(config, use_fp64_gumbel=True))
@@ -281,6 +287,7 @@ def test_red_green_warms_its_sampler_and_verification_kernels(
         (MASTER_KEY, torch.bfloat16, True),
         (MASTER_KEY, torch.float32, True),
     }
+    assert {call["width"] for call in calls["sample"] + calls["bias"]} == {width}
 
 
 def test_lookahead_warms_its_verification_kernels_under_speculation(

@@ -13,6 +13,7 @@ from vllm.v1.watermarking import (
     RedGreenWatermarkDetector,
     SynthIDWatermarkDetector,
     TextGrainWatermarkDetector,
+    UnigramWatermarkDetector,
 )
 
 
@@ -27,6 +28,11 @@ from vllm.v1.watermarking import (
             {"algorithm": "red_green", "key": 42, "context_width": 4},
             RedGreenWatermarkDetector,
             6.53e-15,
+        ),
+        (
+            {"algorithm": "unigram", "key": 42},
+            UnigramWatermarkDetector,
+            0.0,  # TODO: placeholder; record the measured p-value.
         ),
         (
             {"algorithm": "multibit_red_green", "key": 42, "context_width": 4},
@@ -67,6 +73,7 @@ from vllm.v1.watermarking import (
     ids=[
         "gumbel",
         "red_green",
+        "unigram",
         "multibit_red_green",
         "chi_squared",
         "ppl_hard",
@@ -81,7 +88,11 @@ def test_llm_generated_sequence_is_watermarked(
 ):
     """Engine-level watermarking must produce tokens the detector recognizes."""
     detector = detector_cls(
-        key=watermark_config["key"], context_width=watermark_config["context_width"]
+        **{
+            name: value
+            for name, value in watermark_config.items()
+            if name in ("key", "context_width")
+        }
     )
 
     runner = vllm_runner(

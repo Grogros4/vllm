@@ -31,6 +31,8 @@ from vllm.v1.watermarking.prfs import (
 from vllm.v1.watermarking.red_green import (
     RedGreenWatermarkDetector,
     RedGreenWatermarker,
+    UnigramWatermarkDetector,
+    UnigramWatermarker,
 )
 from vllm.v1.watermarking.synthid import (
     SynthIDWatermarkDetector,
@@ -71,6 +73,8 @@ __all__ = [
     "SynthIDWatermarker",
     "TextGrainWatermarkDetector",
     "TextGrainWatermarker",
+    "UnigramWatermarkDetector",
+    "UnigramWatermarker",
     "WatermarkDetection",
     "WatermarkDetector",
     "WatermarkPRF",

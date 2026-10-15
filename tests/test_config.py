@@ -3877,12 +3877,13 @@ def test_multibit_red_green_rejects_target_only_speculative_decoding():
         config._check_supports_watermarking()
 
 
+@pytest.mark.parametrize("algorithm", ["red_green", "unigram"])
 def test_target_only_red_green_is_not_reported_as_diluted(
-    caplog_vllm, disable_log_dedup
+    caplog_vllm, disable_log_dedup, algorithm
 ):
     config = _watermarked_vllm_config()
     config.watermark_config = WatermarkConfig(
-        algorithm="red_green", key=42, allow_target_only_watermarking=True
+        algorithm=algorithm, key=42, allow_target_only_watermarking=True
     )
     config.speculative_config = SimpleNamespace(
         method="mtp",
