@@ -10,9 +10,13 @@ temperature-1.0 request is the first launch with model-dtype logits and pays
 the compilation inside inference. This pre-compiles every specialization the
 sampler path can launch for the configured watermark.
 
-The chi-squared, perplexity and SynthID watermarkers launch their kernels
-from ``sample``, so for them the warmup samples once per logits dtype and
-skip-mask setting.
+The SynthID watermarker launches its kernels from ``sample``, so for it the
+warmup samples once per logits dtype and skip-mask setting.
+
+The generic sampler warmup runs the chi-squared and perplexity watermarkers
+on fp32 logits. The perplexity watermarkers convert logits to fp32 before
+any kernel, but chi-squared's bias kernel reads them as they come, so it is
+also warmed here for the model dtype.
 """
 
 from __future__ import annotations
@@ -25,6 +29,7 @@ from vllm.logger import init_logger
 from vllm.platforms import current_platform
 
 if TYPE_CHECKING:
+    from vllm.v1.watermarking.chi_squared import ChiSquaredWatermarker
     from vllm.v1.watermarking.watermarker import Watermarker
     from vllm.v1.worker.gpu_worker import Worker
 
@@ -104,13 +109,15 @@ def _philox_lookahead_watermarker(watermarker: Watermarker):
     return None
 
 
-def _philox_binomial_score_watermarker(watermarker: Watermarker):
-    """The watermarker when it launches the binomial-score kernels, else None."""
-    from vllm.v1.watermarking.binomial import BinomialScoreWatermarker
+def _philox_chi_squared_watermarker(
+    watermarker: Watermarker,
+) -> ChiSquaredWatermarker | None:
+    """The watermarker when it launches the chi-squared kernels, else None."""
+    from vllm.v1.watermarking.chi_squared import ChiSquaredWatermarker
     from vllm.v1.watermarking.prfs import PhiloxPRF
 
     if (
-        isinstance(watermarker, BinomialScoreWatermarker)
+        isinstance(watermarker, ChiSquaredWatermarker)
         and type(watermarker.prf) is PhiloxPRF
     ):
         return watermarker
@@ -165,13 +172,13 @@ def watermark_sample_warmup(worker: Worker) -> None:
         red_green = _philox_red_green_watermarker(sampler.watermarker)
         multibit = _philox_multibit_red_green_watermarker(sampler.watermarker)
         lookahead = _philox_lookahead_watermarker(sampler.watermarker)
-        binomial = _philox_binomial_score_watermarker(sampler.watermarker)
+        chi_squared = _philox_chi_squared_watermarker(sampler.watermarker)
         synthid = _philox_synthid_watermarker(sampler.watermarker)
         if (
             not keys
             and red_green is None
             and multibit is None
-            and binomial is None
+            and chi_squared is None
             and synthid is None
         ):
             return
@@ -290,23 +297,17 @@ def watermark_sample_warmup(worker: Worker) -> None:
                     ),
                     sampling_state["skip_mask"],
                 )
-            if binomial is not None:
-                random_sampler = RandomSampler(
-                    expanded_idx_mapping=sampling_state["expanded_idx_mapping"],
-                    temperatures=sampling_state["temperatures"],
-                    seeds=sampling_state["seeds"],
-                    positions=sampling_state["positions"],
-                    use_fp64=sampler.use_fp64_gumbel,
+            if chi_squared is not None:
+                chi_squared.add_level_bias(
+                    logits,
+                    contexts,
+                    torch.zeros(
+                        (_NUM_WARMUP_TOKENS, chi_squared.num_trials + 1),
+                        dtype=torch.float32,
+                        device=device,
+                    ),
+                    sampling_state["skip_mask"],
                 )
-                for use_skip_mask in with_skip_mask:
-                    binomial.sample(
-                        logits,
-                        contexts,
-                        random_sampler,
-                        skip_mask=(
-                            sampling_state["skip_mask"] if use_skip_mask else None
-                        ),
-                    )
             if synthid is not None:
                 random_sampler = RandomSampler(
                     expanded_idx_mapping=sampling_state["expanded_idx_mapping"],

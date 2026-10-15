@@ -1,49 +1,40 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
-"""Chi-squared watermark generation."""
+"""Chi-squared watermark generation, adapted from ``ChiTwoWatermark`` in the
+reference implementation of Gloaguen et al. (2026)."""
 
 import torch
 
 from vllm.config.watermarking import WatermarkPRFName
-from vllm.v1.watermarking.binomial import DEFAULT_NUM_TRIALS, BinomialScoreWatermarker
-from vllm.v1.watermarking.prfs import WatermarkPRF
+from vllm.v1.watermarking.binomial import (
+    DEFAULT_NUM_TRIALS,
+    BinomialScoreWatermarker,
+    copy_to_device,
+)
+from vllm.v1.watermarking.prfs import PhiloxPRF, WatermarkPRF
 from vllm.v1.watermarking.watermarker import RandomSampler, WatermarkSample
-
-
-def chi_squared_level_bias(level_mass: torch.Tensor, delta: float) -> torch.Tensor:
-    """Return ``log(max(0, 1 + delta * (s + mu)))`` per row and score level ``s``.
-
-    ``level_mass[row, s]`` is the probability of the tokens scoring ``s``, and
-    ``mu`` makes the reweighted distribution sum to one. At the shift that gives
-    level ``c`` weight zero, the reweighted mass is
-    ``f(c) = sum_s mass_s * max(0, delta * (s - c))``, which decreases in ``c``:
-    the lowest level with positive weight is the number of levels ``c`` with
-    ``f(c) > 1``, and ``mu`` normalizes the levels from it upward.
-    """
-    mass = level_mass.double()
-    mass = mass / mass.sum(dim=-1, keepdim=True)
-    levels = torch.arange(mass.shape[-1], dtype=torch.float64, device=mass.device)
-    mass_above = mass.flip(-1).cumsum(-1).flip(-1)
-    score_above = (mass * levels).flip(-1).cumsum(-1).flip(-1)
-    mass_at_cutoff = delta * (score_above - levels * mass_above)
-    lowest_level = (mass_at_cutoff > 1).sum(dim=-1, keepdim=True)
-    surviving_mass = mass_above.gather(-1, lowest_level)
-    shift = (
-        1 - surviving_mass - delta * score_above.gather(-1, lowest_level)
-    ) / surviving_mass
-    weights = 1 + delta * levels + shift
-    return torch.where(weights > 0, weights.log(), float("-inf")).float()
 
 
 class ChiSquaredWatermarker(BinomialScoreWatermarker):
     """Chi-squared watermark of Gloaguen et al. (2026).
 
-    Samples from the distribution ``q`` maximizing the expected score of the
-    sampled token minus a chi-squared penalty, ``g . q - chi2(q, p) / (2 *
-    delta)``. With ``g`` the tokens' binomial scores and ``p`` the model's
-    distribution after temperature scaling and top-k/top-p filtering, this is
-    ``q_u = p_u * max(0, 1 + delta * (g_u + mu))`` with ``mu`` normalizing ``q``.
+    The weights ``w_u = max(1 + sigma * (g_u + mu), 1e-30)`` make
+    ``q_u = p_u * w_u`` the distribution maximizing the expected score of the
+    sampled token minus a chi-squared penalty ``chi2(q, p) / (2 * sigma)``.
+    ``g`` are the tokens' binomial scores, ``p`` is the model's distribution
+    after temperature scaling and top-k/top-p filtering, ``mu`` normalizes
+    ``q``, and ``sigma`` is the configured ``delta``. Tokens are sampled from
+    ``q``, as in the paper (Theorem D.6). The first ``context_width`` tokens of
+    an output, which lack a full context, are not watermarked.
+
+    Differences from the reference implementation: the reference adds
+    ``log w`` to the logits before temperature scaling, so it samples in
+    proportion to ``p_u * w_u ** (1 / T)`` rather than from ``q``;
+    ``_find_mu`` runs on the total probability of each score level rather
+    than on single tokens, which gives the same ``mu`` because tokens with
+    equal scores get equal weights; and the reference's shortcut for
+    one-trial scores is not needed, since ``_find_mu`` covers that case.
     """
 
     def __init__(
@@ -54,10 +45,78 @@ class ChiSquaredWatermarker(BinomialScoreWatermarker):
         delta: float = 1.0,
         num_trials: int = DEFAULT_NUM_TRIALS,
     ) -> None:
-        if delta <= 0:
+        if not delta > 0:
             raise ValueError("delta must be positive")
         super().__init__(key, context_width, prf, num_trials)
-        self.delta = delta
+
+        # Scheme parameters
+        self.sigma = delta
+        self._sigma_tensor = torch.tensor([delta], dtype=torch.float64)
+        self._device_sigma: dict[torch.device, torch.Tensor] = {}
+
+    def _find_mu(
+        self, p: torch.Tensor, G: torch.Tensor, tol: float = 1e-12
+    ) -> torch.Tensor:
+        """Solve ``sum(p * max(0, 1 + sigma * (G + mu))) = 1`` for ``mu`` per row.
+
+        Args:
+            p: (B, N) Tensor of probabilities/weights
+            G: (B, N) Tensor of values
+            tol: Tolerance for numerical stability
+
+        Returns:
+            mu: (B,) Tensor of solutions
+
+        """
+        B, N = p.shape
+        sigma = self.sigma
+
+        tau = -1.0 - sigma * G  # Shape (B, N)
+
+        tau_s, indices = torch.sort(tau, dim=1)
+        p_s = torch.gather(p, 1, indices)
+        G_s = torch.gather(G, 1, indices)
+
+        P_cum = torch.cumsum(p_s, dim=1)
+
+        term = p_s * (1.0 + sigma * G_s)
+        A_cum = torch.cumsum(term, dim=1)
+
+        U_candidates = (1.0 - A_cum) / (P_cum + 1e-18)
+
+        cond_positive = P_cum > 1e-18
+        cond_left = U_candidates >= (tau_s - tol)
+
+        infinity = torch.full((B, 1), float("inf"), device=p.device, dtype=p.dtype)
+        tau_next = torch.cat([tau_s[:, 1:], infinity], dim=1)
+        cond_right = U_candidates <= (tau_next + tol)
+
+        is_valid = cond_positive & cond_left & cond_right
+
+        first_valid_idx = torch.argmax(is_valid.long(), dim=1)  # Shape (B,)
+        row_has_solution = is_valid.any(dim=1)
+
+        final_idx = torch.where(row_has_solution, first_valid_idx, N - 1)
+
+        U_selected = torch.gather(U_candidates, 1, final_idx.unsqueeze(1)).squeeze(1)
+
+        return U_selected / sigma
+
+    def adjusted_scores(self, level_mass: torch.Tensor) -> torch.Tensor:
+        """Return ``log(max(1 + sigma * (s + mu), 1e-30))`` for each row and
+        score level ``s``, given the total probability ``level_mass[row, s]`` of
+        the tokens scoring ``s``."""
+        probs = level_mass.double()
+        scores = torch.arange(
+            probs.shape[-1], dtype=probs.dtype, device=probs.device
+        ).expand_as(probs)
+        mu = self._find_mu(probs, scores)
+
+        min_value = 1e-30
+        adjusted_scores = torch.log(
+            torch.clamp(1 + self.sigma * (scores + mu.unsqueeze(-1)), min=min_value)
+        )
+        return adjusted_scores.float()
 
     def watermark_logits(
         self,
@@ -67,11 +126,22 @@ class ChiSquaredWatermarker(BinomialScoreWatermarker):
     ) -> torch.Tensor:
         """Return float32 logits of the watermarked distribution of every row
         not in ``skip_mask``."""
-        log_probs = logits.float().log_softmax(dim=-1)
-        level_bias = chi_squared_level_bias(
-            self.level_mass(log_probs, contexts), self.delta
-        )
-        return self.add_level_bias(logits, contexts, level_bias, skip_mask)
+        if type(self.prf) is PhiloxPRF and logits.device.type == "cuda":
+            from vllm.v1.worker.gpu.sample.binomial_watermark import (
+                philox_chi_squared_weights,
+            )
+
+            adjusted_scores = philox_chi_squared_weights(
+                logits.float(),
+                contexts,
+                self.prf.key,
+                self._thresholds_on(logits.device),
+                copy_to_device(self._sigma_tensor, self._device_sigma, logits.device),
+            )
+        else:
+            log_probs = logits.float().log_softmax(dim=-1)
+            adjusted_scores = self.adjusted_scores(self.level_mass(log_probs, contexts))
+        return self.add_level_bias(logits, contexts, adjusted_scores, skip_mask)
 
     def sample(
         self,
@@ -82,8 +152,11 @@ class ChiSquaredWatermarker(BinomialScoreWatermarker):
     ) -> WatermarkSample:
         if random_sampler is None:
             raise ValueError("chi-squared watermarking requires a random sampler")
+        skip_mask = self._skip_partial_contexts(contexts, skip_mask)
         watermarked = self.watermark_logits(logits, contexts, skip_mask)
-        return WatermarkSample(random_sampler(watermarked), watermarked)
+        # The logits before the watermark, as for Gumbel, so processed logprobs
+        # do not reveal the scores.
+        return WatermarkSample(random_sampler(watermarked), logits)
 
     def _sample_watermarked(
         self,

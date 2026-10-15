@@ -112,10 +112,14 @@ class WatermarkConfig:
             "gumbel",
             "dual_key_gumbel",
             "lookahead_gumbel",
+            "ppl_hard",
             "ppl_soft",
         ) and (self.deduplicate_contexts == "none" or history_is_too_short):
-            # These select each token deterministically from the key and context.
-            name = "Soft perplexity" if self.algorithm == "ppl_soft" else "Gumbel-max"
+            # These favor the same token whenever the key and context recur.
+            name = {
+                "ppl_hard": "Hard perplexity",
+                "ppl_soft": "Soft perplexity",
+            }.get(self.algorithm, "Gumbel-max")
             logger.warning_once(
                 f"{name} watermarking with context deduplication "
                 "disabled or limited to fewer than "

@@ -417,9 +417,7 @@ def test_multibit_red_green_warms_its_bias_kernel(
     )
 
 
-@pytest.mark.parametrize(
-    "algorithm", ["chi_squared", "ppl_hard", "ppl_soft", "synthid"]
-)
+@pytest.mark.parametrize("algorithm", ["synthid"])
 @pytest.mark.parametrize(
     ("deduplicate_contexts", "skip_masks"),
     [("single_turn", {True}), ("none", {True, False})],
@@ -461,3 +459,28 @@ def test_sampling_watermarks_warm_their_sampling_path(
         for dtype in (torch.bfloat16, torch.float32)
         for use_skip_mask in skip_masks
     }
+
+
+@pytest.mark.parametrize("algorithm", ["chi_squared", "ppl_hard", "ppl_soft"])
+def test_binomial_score_watermarks_warm_only_the_chi_squared_bias(
+    monkeypatch: pytest.MonkeyPatch, algorithm: str
+) -> None:
+    """The generic sampler warmup runs these watermarkers on fp32 logits; only
+    chi-squared's bias kernel also reads logits in the model dtype."""
+    gumbel_calls = _capture_calls(monkeypatch)
+    worker = _worker(WatermarkConfig(key=MASTER_KEY, algorithm=algorithm))
+    watermarker = worker.model_runner.sampler.watermarker
+    bias_dtypes: list[torch.dtype] = []
+    if algorithm == "chi_squared":
+        monkeypatch.setattr(
+            watermarker,
+            "add_level_bias",
+            lambda logits, *args: bias_dtypes.append(logits.dtype),
+        )
+
+    watermark_sample_warmup(worker)
+
+    assert gumbel_calls == []
+    assert sorted(bias_dtypes, key=str) == (
+        [torch.bfloat16, torch.float32] if algorithm == "chi_squared" else []
+    )
