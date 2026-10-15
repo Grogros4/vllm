@@ -524,3 +524,44 @@ def test_binomial_score_watermarks_warm_only_the_chi_squared_bias(
     assert sorted(bias_dtypes, key=str) == (
         [torch.bfloat16, torch.float32] if algorithm == "chi_squared" else []
     )
+
+
+def test_gaussian_copula_warms_its_kernel_for_both_logits_dtypes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The watermarker always passes the kernel a skip mask, and the sampler's
+    ``use_fp64_gumbel``."""
+    gumbel_calls = _capture_calls(monkeypatch)
+    calls: list[dict] = []
+
+    def fake_philox_gaussian_copula_sample(
+        logits, contexts, key, correlation, **kwargs
+    ):
+        calls.append(
+            {"logits": logits, "key": key, "correlation": correlation, **kwargs}
+        )
+        return torch.zeros(logits.shape[0], dtype=torch.int64)
+
+    monkeypatch.setattr(
+        "vllm.v1.worker.gpu.sample.gaussian_copula_watermark."
+        "philox_gaussian_copula_sample",
+        fake_philox_gaussian_copula_sample,
+    )
+    watermark_sample_warmup(
+        _worker(
+            WatermarkConfig(
+                key=MASTER_KEY, algorithm="gaussian_copula", correlation=0.5
+            ),
+            use_fp64_gumbel=True,
+        )
+    )
+
+    assert gumbel_calls == []
+    assert _variants(calls) == {
+        (MASTER_KEY, torch.bfloat16, True),
+        (MASTER_KEY, torch.float32, True),
+    }
+    assert len(calls) == len(_variants(calls))
+    for call in calls:
+        assert call["correlation"] == 0.5
+        assert call["use_fp64"] is True

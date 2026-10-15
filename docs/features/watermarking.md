@@ -402,6 +402,42 @@ result = SynthIDWatermarkDetector(key=42, depth=30).detect(token_ids)
 
 SynthID-Text does not support [speculative decoding](#speculative-decoding).
 
+### Gaussian copula
+
+The Gaussian copula watermark, from [AutoMark](https://arxiv.org/abs/2609.37310),
+is Gumbel-max sampling with partly keyed noise. Every candidate token gets
+`z = correlation * ndtri(U) + sqrt(1 - correlation**2) * N`, where `U` is the
+PRF value of the key, context, and token and `N` is fresh standard normal noise,
+and the sampled token maximizes its log-probability plus `-log(-log Phi(z))`.
+Each `z` is standard normal, so tokens follow the model's distribution after
+temperature scaling and top-k/top-p filtering, while tokens with a high `U` are
+favored. `correlation` defaults to 0.98551, AutoMark's value matching the
+quality of TextSeal at alpha 0.1; at 1 the noise is fully keyed.
+
+The context is the last `context_width` tokens, and AutoMark uses 2. The first
+`context_width` tokens of an output, whose context reaches before it, are
+sampled without the watermark, and so are repeated contexts under
+[context deduplication](#context-deduplication):
+
+```bash
+vllm serve MODEL \
+  --watermark-config \
+  '{"algorithm":"gaussian_copula","key":42,"context_width":2}'
+```
+
+Detection scores every distinct (context, token) pair once, sums
+`-log(1 - U)`, and reports the Gamma tail probability of the sum, multiplied by
+`key_safety` (default 20, as in the reference implementation) and capped at 1:
+
+```python
+from vllm.v1.watermarking import GaussianCopulaWatermarkDetector
+
+result = GaussianCopulaWatermarkDetector(key=42, context_width=2).detect(token_ids)
+```
+
+The Gaussian copula watermark does not support
+[speculative decoding](#speculative-decoding).
+
 ## Pseudorandom functions
 
 A watermark PRF turns the secret key, token context, and candidate token into

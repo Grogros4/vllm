@@ -3661,6 +3661,22 @@ def test_target_only_gumbel_allows_speculative_decoding(caplog_vllm, disable_log
     assert "Target-only watermarking leaves accepted draft tokens" in caplog_vllm.text
 
 
+def test_gaussian_copula_rejects_speculative_decoding():
+    config = _watermarked_vllm_config()
+    config.watermark_config = WatermarkConfig(
+        algorithm="gaussian_copula", key=42, allow_target_only_watermarking=True
+    )
+    config.speculative_config = SimpleNamespace(
+        method="mtp",
+        draft_sample_method="probabilistic",
+        rejection_sample_method="standard",
+        parallel_drafting=False,
+    )
+
+    with pytest.raises(ValueError, match="'gaussian_copula' watermarking algorithm"):
+        config._check_supports_watermarking()
+
+
 def test_speculative_watermarking_without_context_dedup_does_not_warn(
     caplog_vllm, disable_log_dedup
 ):

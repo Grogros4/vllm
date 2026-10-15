@@ -22,6 +22,7 @@ from vllm.config.watermarking import (
 from vllm.v1.watermarking import (
     BinomialScoreWatermarkDetector,
     DualKeyGumbelWatermarkDetector,
+    GaussianCopulaWatermarkDetector,
     GumbelWatermarkDetector,
     MultibitRedGreenWatermarkDetector,
     RedGreenWatermarkDetector,
@@ -34,7 +35,7 @@ from vllm.v1.watermarking import (
 )
 from vllm.v1.worker.gpu.sample.watermark import repeated_context_mask
 
-GOLDEN_SCHEMA_VERSION = 6
+GOLDEN_SCHEMA_VERSION = 7
 
 # JSON floats round-trip exactly, but libm differs by an ULP across builds.
 GOLDEN_FLOAT_RTOL = 1e-9
@@ -48,6 +49,7 @@ ROUTING_BOUNDARY_MIN_DISTANCE = 1e-6
 WATERMARK_CONFIG_FIELDS = (
     "algorithm",
     "alpha",
+    "correlation",
     "delta",
     "gamma",
     "message",
@@ -127,6 +129,7 @@ class WatermarkingSchemeConfig:
     entropy_budget: float = 0.2
     num_blocks: int = 16
     num_columns: int = 16
+    correlation: float = 0.98551
 
 
 @dataclass(frozen=True)
@@ -268,6 +271,19 @@ def _create_textgrain_detector(
     )
 
 
+def _create_gaussian_copula_detector(
+    key: int,
+    config: WatermarkingSchemeConfig,
+    prf: WatermarkPRFName,
+) -> WatermarkDetector:
+    return GaussianCopulaWatermarkDetector(
+        key=key,
+        context_width=config.context_width,
+        p_value_threshold=config.p_value_threshold,
+        prf=prf,
+    )
+
+
 DETECTOR_FACTORIES = {
     "gumbel": _create_gumbel_detector,
     "dual_key_gumbel": _create_dual_key_gumbel_detector,
@@ -280,6 +296,7 @@ DETECTOR_FACTORIES = {
     "ppl_soft": _create_binomial_score_detector,
     "synthid": _create_synthid_detector,
     "textgrain": _create_textgrain_detector,
+    "gaussian_copula": _create_gaussian_copula_detector,
 }
 
 
@@ -323,6 +340,7 @@ class WatermarkingCandidate:
                 "entropy_budget": self.scheme_config.entropy_budget,
                 "num_blocks": self.scheme_config.num_blocks,
                 "num_columns": self.scheme_config.num_columns,
+                "correlation": self.scheme_config.correlation,
             },
             "prf": self.prf,
             "prf_version": prf_version,
@@ -369,6 +387,7 @@ class WatermarkingCandidate:
                 "p_value_threshold": detector.p_value_threshold,
                 "deduplicate_contexts": detector.deduplicate_contexts,
                 "alpha": getattr(detector, "alpha", None),
+                "key_safety": getattr(detector, "key_safety", None),
                 "gamma": getattr(detector, "gamma", None),
                 "message_bits": getattr(detector, "message_bits", None),
                 "num_trials": getattr(detector, "num_trials", None),
@@ -471,6 +490,7 @@ class WatermarkingCandidate:
             entropy_budget=self.scheme_config.entropy_budget,
             num_blocks=self.scheme_config.num_blocks,
             num_columns=self.scheme_config.num_columns,
+            correlation=self.scheme_config.correlation,
             context_width=self.scheme_config.context_width,
             deduplicate_contexts=(self.scheme_config.generation_deduplicate_contexts),
             deduplicate_contexts_max_history=(
@@ -581,6 +601,7 @@ def _candidate(
     entropy_budget: float = 0.2,
     num_blocks: int = 16,
     num_columns: int = 16,
+    correlation: float = 0.98551,
     fixture: DeterministicGenerationFixture = BALANCED_FIXTURE,
 ) -> WatermarkingCandidate:
     return WatermarkingCandidate(
@@ -608,6 +629,7 @@ def _candidate(
             entropy_budget=entropy_budget,
             num_blocks=num_blocks,
             num_columns=num_columns,
+            correlation=correlation,
         ),
         prf=prf,
         key=key,
@@ -900,6 +922,20 @@ WATERMARKING_CANDIDATES = (
         context_width=2,
         entropy_budget=0.4,
         num_blocks=8,
+    ),
+    _candidate(
+        "gaussian-copula-philox-key42-cw2",
+        "gaussian_copula",
+        42,
+        prf="philox",
+        context_width=2,
+    ),
+    _candidate(
+        "gaussian-copula-philox-key7-cw4-rho0.5",
+        "gaussian_copula",
+        7,
+        prf="philox",
+        correlation=0.5,
     ),
 )
 

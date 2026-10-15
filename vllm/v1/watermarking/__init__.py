@@ -6,6 +6,10 @@ from vllm.v1.watermarking.binomial import BinomialScoreWatermarkDetector
 from vllm.v1.watermarking.chi_squared import ChiSquaredWatermarker
 from vllm.v1.watermarking.detector import WatermarkDetection, WatermarkDetector
 from vllm.v1.watermarking.factory import create_watermarker
+from vllm.v1.watermarking.gaussian_copula import (
+    GaussianCopulaWatermarkDetector,
+    GaussianCopulaWatermarker,
+)
 from vllm.v1.watermarking.gumbel import (
     DualKeyGumbelWatermarkDetector,
     DualKeyGumbelWatermarker,
@@ -48,6 +52,8 @@ __all__ = [
     "ChiSquaredWatermarker",
     "DualKeyGumbelWatermarkDetector",
     "DualKeyGumbelWatermarker",
+    "GaussianCopulaWatermarkDetector",
+    "GaussianCopulaWatermarker",
     "GumbelWatermarkDetector",
     "GumbelWatermarker",
     "MultibitRedGreenWatermarkDetector",

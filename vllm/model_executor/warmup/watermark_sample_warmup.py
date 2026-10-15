@@ -10,6 +10,9 @@ temperature-1.0 request is the first launch with model-dtype logits and pays
 the compilation inside inference. This pre-compiles every specialization the
 sampler path can launch for the configured watermark.
 
+``_philox_gaussian_copula_kernel`` is keyed the same way, except that it always
+gets a skip mask.
+
 The SynthID and textGrain watermarkers launch their kernels from ``sample``,
 so for them the warmup samples once per logits dtype and skip-mask setting.
 
@@ -68,6 +71,17 @@ def _philox_sampler_keys(watermarker: Watermarker) -> list[int]:
                 watermarker.target_watermarker,
             ]
     return [key for key in map(_philox_key, watermarkers) if key is not None]
+
+
+def _philox_gaussian_copula_args(watermarker: Watermarker) -> tuple[int, float] | None:
+    """Key and correlation the Gaussian copula kernel is launched with, or None."""
+    from vllm.v1.watermarking.gaussian_copula import GaussianCopulaWatermarker
+    from vllm.v1.watermarking.prfs import PhiloxPRF
+
+    if not isinstance(watermarker, GaussianCopulaWatermarker):
+        return None
+    prf = watermarker.prf
+    return (prf.key, watermarker.correlation) if type(prf) is PhiloxPRF else None
 
 
 def _philox_red_green_watermarker(watermarker: Watermarker):
@@ -160,6 +174,9 @@ def watermark_sample_warmup(worker: Worker) -> None:
 
     from vllm.v1.watermarking.gpu_sampler import GPUWatermarkSampler
     from vllm.v1.watermarking.watermarker import RandomSampler
+    from vllm.v1.worker.gpu.sample.gaussian_copula_watermark import (
+        philox_gaussian_copula_sample,
+    )
     from vllm.v1.worker.gpu.sample.watermark import (
         philox_green_bias,
         philox_gumbel_sample,
@@ -187,6 +204,7 @@ def watermark_sample_warmup(worker: Worker) -> None:
         chi_squared = _philox_chi_squared_watermarker(sampler.watermarker)
         synthid = _philox_synthid_watermarker(sampler.watermarker)
         textgrain = _philox_textgrain_watermarker(sampler.watermarker)
+        gaussian_copula_args = _philox_gaussian_copula_args(sampler.watermarker)
         if (
             not keys
             and red_green is None
@@ -194,6 +212,7 @@ def watermark_sample_warmup(worker: Worker) -> None:
             and chi_squared is None
             and synthid is None
             and textgrain is None
+            and gaussian_copula_args is None
         ):
             return
 
@@ -321,6 +340,18 @@ def watermark_sample_warmup(worker: Worker) -> None:
                         device=device,
                     ),
                     sampling_state["skip_mask"],
+                )
+            if gaussian_copula_args is not None:
+                key, correlation = gaussian_copula_args
+                # The watermarker adds the rows without a full context to the
+                # skip mask, so the kernel always gets one.
+                philox_gaussian_copula_sample(
+                    logits,
+                    contexts,
+                    key,
+                    correlation,
+                    use_fp64=sampler.use_fp64_gumbel,
+                    **sampling_state,
                 )
             for sampled in (synthid, textgrain):
                 if sampled is None:

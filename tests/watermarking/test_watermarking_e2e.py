@@ -7,6 +7,7 @@ from vllm import SamplingParams
 from vllm.platforms import current_platform
 from vllm.v1.watermarking import (
     BinomialScoreWatermarkDetector,
+    GaussianCopulaWatermarkDetector,
     GumbelWatermarkDetector,
     MultibitRedGreenWatermarkDetector,
     RedGreenWatermarkDetector,
@@ -57,6 +58,11 @@ from vllm.v1.watermarking import (
             TextGrainWatermarkDetector,
             1.0,  # TODO(textgrain): placeholder, record the GPU run's p-value.
         ),
+        (
+            {"algorithm": "gaussian_copula", "key": 42, "context_width": 2},
+            GaussianCopulaWatermarkDetector,
+            1.0,  # Placeholder: replace with the value measured on a GPU.
+        ),
     ],
     ids=[
         "gumbel",
@@ -67,6 +73,7 @@ from vllm.v1.watermarking import (
         "ppl_soft",
         "synthid",
         "textgrain",
+        "gaussian_copula",
     ],
 )
 def test_llm_generated_sequence_is_watermarked(

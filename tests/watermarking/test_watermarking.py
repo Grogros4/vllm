@@ -118,7 +118,7 @@ def test_watermarker_contract(algorithm: str):
     assert torch.equal(first.token_ids, second.token_ids)
 
 
-@pytest.mark.parametrize("algorithm", ["gumbel", "dual_key_gumbel"])
+@pytest.mark.parametrize("algorithm", ["gumbel", "dual_key_gumbel", "gaussian_copula"])
 @pytest.mark.parametrize(
     "config_overrides",
     [
@@ -140,9 +140,10 @@ def test_gumbel_config_warns_when_context_deduplication_is_weak(
     WatermarkConfig(key=42, algorithm=algorithm, deduplicate_contexts_max_history=None)
     WatermarkConfig(key=42, algorithm=algorithm, **config_overrides)
 
+    name = "Gaussian copula" if algorithm == "gaussian_copula" else "Gumbel-max"
     assert messages == [
         (
-            "Gumbel-max watermarking with context deduplication disabled "
+            f"{name} watermarking with context deduplication disabled "
             "or limited to fewer than 1024 positions may increase the frequency of "
             "degenerate generations, including repetition loops. Use "
             "deduplicate_contexts='single_turn' or 'all' with "

@@ -5,6 +5,7 @@ from typing import Any
 
 from vllm.config.watermarking import WatermarkConfig
 from vllm.v1.watermarking.chi_squared import ChiSquaredWatermarker
+from vllm.v1.watermarking.gaussian_copula import GaussianCopulaWatermarker
 from vllm.v1.watermarking.gumbel import (
     DualKeyGumbelWatermarker,
     GumbelWatermarker,
@@ -83,5 +84,12 @@ def create_watermarker(config: WatermarkConfig) -> Watermarker:
             config.entropy_budget,
             config.num_blocks,
             config.num_columns,
+        )
+    if config.algorithm == "gaussian_copula":
+        return GaussianCopulaWatermarker(
+            config.key,
+            config.context_width,
+            config.prf,
+            config.correlation,
         )
     raise ValueError(f"Unknown watermarking algorithm: {config.algorithm}")

@@ -1363,6 +1363,7 @@ class VllmConfig:
                 "ppl_hard",
                 "ppl_soft",
                 "synthid",
+                "gaussian_copula",
             ):
                 raise ValueError(
                     f"The '{watermark_config.algorithm}' watermarking algorithm "

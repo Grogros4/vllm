@@ -23,6 +23,7 @@ WatermarkingAlgorithm = Literal[
     "ppl_soft",
     "synthid",
     "textgrain",
+    "gaussian_copula",
 ]
 LookaheadAggregator = Literal["pi1", "pi2", "max", "tsum", "min", "lin", "expsum"]
 WatermarkPRFName = Literal["philox"]
@@ -46,6 +47,10 @@ class WatermarkConfig:
     """Algorithm used to watermark generated text."""
     alpha: float = Field(default=0.1, ge=0, le=1)
     """Probability of selecting key B for dual-key watermarking."""
+    correlation: float = Field(default=0.98551, gt=0, le=1)
+    """Keyed share of the Gaussian behind the Gumbel noise of Gaussian copula
+    watermarking; 1 makes the noise fully keyed. The default is AutoMark's,
+    chosen to match the quality of TextSeal at alpha 0.1."""
     delta: float | None = Field(default=None, gt=0)
     """Strength of the logit-bias and chi-squared watermarks; each algorithm
     has its own default: the bias added to green-list tokens for `red_green`
@@ -123,11 +128,13 @@ class WatermarkConfig:
             "lookahead_gumbel",
             "ppl_hard",
             "ppl_soft",
+            "gaussian_copula",
         ) and (self.deduplicate_contexts == "none" or history_is_too_short):
             # These favor the same token whenever the key and context recur.
             name = {
                 "ppl_hard": "Hard perplexity",
                 "ppl_soft": "Soft perplexity",
+                "gaussian_copula": "Gaussian copula",
             }.get(self.algorithm, "Gumbel-max")
             logger.warning_once(
                 f"{name} watermarking with context deduplication "
