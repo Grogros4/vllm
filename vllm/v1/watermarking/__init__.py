@@ -20,6 +20,10 @@ from vllm.v1.watermarking.red_green import (
     RedGreenWatermarkDetector,
     RedGreenWatermarker,
 )
+from vllm.v1.watermarking.textgrain import (
+    TextGrainWatermarkDetector,
+    TextGrainWatermarker,
+)
 from vllm.v1.watermarking.watermarker import (
     SupportsSpeculativeDecoding,
     SupportsVerificationLogits,
@@ -38,6 +42,8 @@ __all__ = [
     "RedGreenWatermarker",
     "SupportsSpeculativeDecoding",
     "SupportsVerificationLogits",
+    "TextGrainWatermarkDetector",
+    "TextGrainWatermarker",
     "WatermarkDetection",
     "WatermarkDetector",
     "WatermarkPRF",

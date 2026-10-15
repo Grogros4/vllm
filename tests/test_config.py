@@ -3793,6 +3793,19 @@ def test_dual_key_gumbel_supports_probabilistic_speculative_decoding(method):
     config._check_supports_watermarking()
 
 
+def test_textgrain_supports_speculative_decoding():
+    config = _watermarked_vllm_config()
+    config.watermark_config = WatermarkConfig(algorithm="textgrain", key=42)
+    config.speculative_config = SimpleNamespace(
+        method="mtp",
+        draft_sample_method="probabilistic",
+        rejection_sample_method="standard",
+        parallel_drafting=False,
+    )
+
+    config._check_supports_watermarking()
+
+
 def test_red_green_speculative_decoding_requires_target_only():
     config = _watermarked_vllm_config()
     config.watermark_config = WatermarkConfig(algorithm="red_green", key=42)

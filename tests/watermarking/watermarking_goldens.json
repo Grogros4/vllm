@@ -21,10 +21,13 @@
           "delta": 2.0,
           "detection_alpha": 0.0,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.0,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -126,7 +129,10 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -159,10 +165,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -264,7 +273,10 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -297,10 +309,13 @@
           "delta": 2.0,
           "detection_alpha": 0.5,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.5,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -402,7 +417,10 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -435,10 +453,13 @@
           "delta": 2.0,
           "detection_alpha": 0.2,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -540,7 +561,10 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -573,10 +597,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.003
         }
       },
@@ -622,7 +649,10 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -655,10 +685,13 @@
           "delta": 2.0,
           "detection_alpha": 1.0,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 1.0,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -760,7 +793,10 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -793,10 +829,13 @@
           "delta": 2.0,
           "detection_alpha": 0.4,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.4,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -898,7 +937,10 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -931,10 +973,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -1020,7 +1065,10 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -1053,10 +1101,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "all",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -1142,7 +1193,10 @@
           "deduplicate_contexts": "all",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -1175,10 +1229,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -1280,7 +1337,10 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -1313,10 +1373,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": false,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "none",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -1418,7 +1481,10 @@
           "deduplicate_contexts": "none",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -1451,10 +1517,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -1556,7 +1625,10 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -1589,10 +1661,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "all",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -1694,7 +1769,10 @@
           "deduplicate_contexts": "all",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -1733,10 +1811,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "all",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -1838,7 +1919,10 @@
           "deduplicate_contexts": "all",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -1871,10 +1955,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "all",
           "generation_deduplicate_contexts_max_history": null,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -1976,7 +2063,10 @@
           "deduplicate_contexts": "all",
           "deduplicate_contexts_max_history": null,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -2009,10 +2099,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": null,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -2114,7 +2207,10 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": null,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -2147,10 +2243,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -2252,7 +2351,10 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -2285,10 +2387,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": false,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "none",
           "generation_deduplicate_contexts_max_history": null,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -2390,7 +2495,10 @@
           "deduplicate_contexts": "none",
           "deduplicate_contexts_max_history": null,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -2423,10 +2531,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.0015
         }
       },
@@ -2472,7 +2583,10 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -2505,10 +2619,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -2610,7 +2727,10 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -2643,10 +2763,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "all",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -2748,7 +2871,10 @@
           "deduplicate_contexts": "all",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -2781,10 +2907,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -2870,7 +2999,10 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -2903,10 +3035,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "all",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -2992,7 +3127,10 @@
           "deduplicate_contexts": "all",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -3025,10 +3163,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -3130,7 +3271,10 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -3163,10 +3307,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -3268,7 +3415,10 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -3301,10 +3451,13 @@
           "delta": 2.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -3406,7 +3559,10 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 2.0,
+          "entropy_budget": 0.2,
           "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -3439,10 +3595,13 @@
           "delta": 4.0,
           "detection_alpha": 0.1,
           "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
           "gamma": 0.5,
           "generation_alpha": 0.1,
           "generation_deduplicate_contexts": "single_turn",
           "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
           "p_value_threshold": 0.01
         }
       },
@@ -3544,7 +3703,442 @@
           "deduplicate_contexts": "single_turn",
           "deduplicate_contexts_max_history": 8192,
           "delta": 4.0,
+          "entropy_budget": 0.2,
           "gamma": 0.5,
+          "num_blocks": 16,
+          "num_columns": 16,
+          "prf": "philox"
+        }
+      },
+      "trace": {
+        "dedup_skips": 0,
+        "key_b_effective": null,
+        "key_b_routed": null,
+        "partial_context_skips": 0,
+        "routing_draws": 0
+      }
+    },
+    "textgrain-philox-key42-cw4": {
+      "configuration": {
+        "detection_key": "42",
+        "fixture": {
+          "dominant_bias": 0,
+          "dominant_token": null,
+          "logit_denominator": 16,
+          "logit_modulus": 131,
+          "num_tokens": 64,
+          "prompt": [],
+          "vocabulary_size": 128
+        },
+        "key": "42",
+        "prf": "philox",
+        "prf_version": "philox4x32-10-v1",
+        "scheme": "textgrain",
+        "scheme_config": {
+          "context_width": 4,
+          "delta": 2.0,
+          "detection_alpha": 0.1,
+          "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
+          "gamma": 0.25,
+          "generation_alpha": 0.1,
+          "generation_deduplicate_contexts": "single_turn",
+          "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
+          "p_value_threshold": 0.01
+        }
+      },
+      "detection": {
+        "is_watermarked": true,
+        "num_scored_tokens": 64,
+        "p_value": 2.628457080591936e-31,
+        "p_value_ratio": 2.628457080591936e-29,
+        "score": 205.17005698335714
+      },
+      "generation": [
+        49,
+        3,
+        38,
+        48,
+        44,
+        79,
+        43,
+        32,
+        49,
+        102,
+        34,
+        101,
+        86,
+        61,
+        121,
+        46,
+        113,
+        13,
+        2,
+        76,
+        97,
+        93,
+        99,
+        14,
+        24,
+        38,
+        119,
+        76,
+        118,
+        36,
+        103,
+        28,
+        10,
+        6,
+        2,
+        51,
+        61,
+        121,
+        25,
+        74,
+        6,
+        105,
+        115,
+        68,
+        68,
+        96,
+        39,
+        88,
+        98,
+        112,
+        118,
+        114,
+        100,
+        96,
+        42,
+        95,
+        52,
+        69,
+        83,
+        125,
+        68,
+        39,
+        63,
+        70
+      ],
+      "resolved": {
+        "derived_keys": {
+          "key_a": null,
+          "key_b": null
+        },
+        "detector": {
+          "alpha": null,
+          "context_width": 4,
+          "deduplicate_contexts": true,
+          "gamma": null,
+          "key_b_prf_key": null,
+          "p_value_threshold": 0.01,
+          "prf_key": null,
+          "type": "TextGrainWatermarkDetector"
+        },
+        "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
+          "algorithm": "textgrain",
+          "allow_target_only_watermarking": false,
+          "alpha": 0.1,
+          "context_width": 4,
+          "deduplicate_contexts": "single_turn",
+          "deduplicate_contexts_max_history": 8192,
+          "delta": 2.0,
+          "entropy_budget": 0.2,
+          "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
+          "prf": "philox"
+        }
+      },
+      "trace": {
+        "dedup_skips": 0,
+        "key_b_effective": null,
+        "key_b_routed": null,
+        "partial_context_skips": 0,
+        "routing_draws": 0
+      }
+    },
+    "textgrain-philox-key42-cw4-wrong-key": {
+      "configuration": {
+        "detection_key": "43",
+        "fixture": {
+          "dominant_bias": 0,
+          "dominant_token": null,
+          "logit_denominator": 16,
+          "logit_modulus": 131,
+          "num_tokens": 64,
+          "prompt": [],
+          "vocabulary_size": 128
+        },
+        "key": "42",
+        "prf": "philox",
+        "prf_version": "philox4x32-10-v1",
+        "scheme": "textgrain",
+        "scheme_config": {
+          "context_width": 4,
+          "delta": 2.0,
+          "detection_alpha": 0.1,
+          "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.2,
+          "gamma": 0.25,
+          "generation_alpha": 0.1,
+          "generation_deduplicate_contexts": "single_turn",
+          "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 16,
+          "num_columns": 16,
+          "p_value_threshold": 0.01
+        }
+      },
+      "detection": {
+        "is_watermarked": false,
+        "num_scored_tokens": 64,
+        "p_value": 0.6468320928688034,
+        "p_value_ratio": 64.68320928688034,
+        "score": 60.70900381123836
+      },
+      "generation": [
+        49,
+        3,
+        38,
+        48,
+        44,
+        79,
+        43,
+        32,
+        49,
+        102,
+        34,
+        101,
+        86,
+        61,
+        121,
+        46,
+        113,
+        13,
+        2,
+        76,
+        97,
+        93,
+        99,
+        14,
+        24,
+        38,
+        119,
+        76,
+        118,
+        36,
+        103,
+        28,
+        10,
+        6,
+        2,
+        51,
+        61,
+        121,
+        25,
+        74,
+        6,
+        105,
+        115,
+        68,
+        68,
+        96,
+        39,
+        88,
+        98,
+        112,
+        118,
+        114,
+        100,
+        96,
+        42,
+        95,
+        52,
+        69,
+        83,
+        125,
+        68,
+        39,
+        63,
+        70
+      ],
+      "resolved": {
+        "derived_keys": {
+          "key_a": null,
+          "key_b": null
+        },
+        "detector": {
+          "alpha": null,
+          "context_width": 4,
+          "deduplicate_contexts": true,
+          "gamma": null,
+          "key_b_prf_key": null,
+          "p_value_threshold": 0.01,
+          "prf_key": null,
+          "type": "TextGrainWatermarkDetector"
+        },
+        "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
+          "algorithm": "textgrain",
+          "allow_target_only_watermarking": false,
+          "alpha": 0.1,
+          "context_width": 4,
+          "deduplicate_contexts": "single_turn",
+          "deduplicate_contexts_max_history": 8192,
+          "delta": 2.0,
+          "entropy_budget": 0.2,
+          "gamma": 0.25,
+          "num_blocks": 16,
+          "num_columns": 16,
+          "prf": "philox"
+        }
+      },
+      "trace": {
+        "dedup_skips": 0,
+        "key_b_effective": null,
+        "key_b_routed": null,
+        "partial_context_skips": 0,
+        "routing_draws": 0
+      }
+    },
+    "textgrain-philox-key7-cw2-beta0.4-blocks8": {
+      "configuration": {
+        "detection_key": "7",
+        "fixture": {
+          "dominant_bias": 0,
+          "dominant_token": null,
+          "logit_denominator": 16,
+          "logit_modulus": 131,
+          "num_tokens": 64,
+          "prompt": [],
+          "vocabulary_size": 128
+        },
+        "key": "7",
+        "prf": "philox",
+        "prf_version": "philox4x32-10-v1",
+        "scheme": "textgrain",
+        "scheme_config": {
+          "context_width": 2,
+          "delta": 2.0,
+          "detection_alpha": 0.1,
+          "detection_deduplicate_contexts": true,
+          "entropy_budget": 0.4,
+          "gamma": 0.25,
+          "generation_alpha": 0.1,
+          "generation_deduplicate_contexts": "single_turn",
+          "generation_deduplicate_contexts_max_history": 8192,
+          "num_blocks": 8,
+          "num_columns": 16,
+          "p_value_threshold": 0.01
+        }
+      },
+      "detection": {
+        "is_watermarked": true,
+        "num_scored_tokens": 64,
+        "p_value": 3.52608869106293e-15,
+        "p_value_ratio": 3.52608869106293e-13,
+        "score": 147.3771983487859
+      },
+      "generation": [
+        53,
+        88,
+        105,
+        34,
+        122,
+        40,
+        36,
+        124,
+        113,
+        56,
+        119,
+        2,
+        51,
+        40,
+        89,
+        78,
+        113,
+        70,
+        20,
+        108,
+        26,
+        107,
+        50,
+        46,
+        42,
+        38,
+        34,
+        69,
+        125,
+        114,
+        117,
+        67,
+        24,
+        91,
+        101,
+        104,
+        15,
+        71,
+        32,
+        21,
+        70,
+        105,
+        30,
+        97,
+        100,
+        89,
+        85,
+        81,
+        31,
+        112,
+        69,
+        65,
+        29,
+        57,
+        35,
+        3,
+        73,
+        94,
+        37,
+        79,
+        68,
+        78,
+        21,
+        56
+      ],
+      "resolved": {
+        "derived_keys": {
+          "key_a": null,
+          "key_b": null
+        },
+        "detector": {
+          "alpha": null,
+          "context_width": 2,
+          "deduplicate_contexts": true,
+          "gamma": null,
+          "key_b_prf_key": null,
+          "p_value_threshold": 0.01,
+          "prf_key": null,
+          "type": "TextGrainWatermarkDetector"
+        },
+        "watermark_config": {
+          "aggregator": "tsum",
+          "aggregator_lambda": 1.0,
+          "algorithm": "textgrain",
+          "allow_target_only_watermarking": false,
+          "alpha": 0.1,
+          "context_width": 2,
+          "deduplicate_contexts": "single_turn",
+          "deduplicate_contexts_max_history": 8192,
+          "delta": 2.0,
+          "entropy_budget": 0.4,
+          "gamma": 0.25,
+          "num_blocks": 8,
+          "num_columns": 16,
           "prf": "philox"
         }
       },
@@ -3557,5 +4151,5 @@
       }
     }
   },
-  "schema_version": 4
+  "schema_version": 5
 }

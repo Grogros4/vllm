@@ -13,7 +13,7 @@ from vllm.logger import init_logger
 logger = init_logger(__name__)
 
 WatermarkingAlgorithm = Literal[
-    "gumbel", "dual_key_gumbel", "red_green", "lookahead_gumbel"
+    "gumbel", "dual_key_gumbel", "red_green", "lookahead_gumbel", "textgrain"
 ]
 LookaheadAggregator = Literal["pi1", "pi2", "max", "tsum", "min", "lin", "expsum"]
 WatermarkPRFName = Literal["philox"]
@@ -49,6 +49,13 @@ class WatermarkConfig:
     keeping the result a standard Gumbel."""
     aggregator_lambda: float = Field(default=1.0, gt=0)
     """Weight of the child's value in the `lin` lookahead aggregator."""
+    entropy_budget: float = Field(default=0.2, ge=0, le=1)
+    """Average fraction of the next-token entropy textGrain watermarking
+    removes. A larger budget gives a stronger watermark and more distortion."""
+    num_blocks: int = Field(default=16, ge=2)
+    """Number of keyed vocabulary blocks of textGrain watermarking."""
+    num_columns: int = Field(default=16, ge=2)
+    """Number of keyed columns textGrain couples the blocks to."""
     context_width: int = Field(default=4, ge=1)
     """Number of prior tokens used by the watermark PRF."""
     deduplicate_contexts: WatermarkContextScope = "single_turn"
@@ -69,7 +76,8 @@ class WatermarkConfig:
 
     @property
     def supports_speculative_decoding(self) -> bool:
-        return self.algorithm in ("dual_key_gumbel", "lookahead_gumbel")
+        # textGrain verifies drafts against its watermarked distribution.
+        return self.algorithm in ("dual_key_gumbel", "lookahead_gumbel", "textgrain")
 
     @model_validator(mode="after")
     def validate_watermark_settings(self) -> Self:

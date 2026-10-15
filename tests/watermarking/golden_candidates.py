@@ -23,6 +23,7 @@ from vllm.v1.watermarking import (
     DualKeyGumbelWatermarkDetector,
     GumbelWatermarkDetector,
     RedGreenWatermarkDetector,
+    TextGrainWatermarkDetector,
     WatermarkDetection,
     WatermarkDetector,
     create_prf,
@@ -30,7 +31,7 @@ from vllm.v1.watermarking import (
 )
 from vllm.v1.worker.gpu.sample.watermark import repeated_context_mask
 
-GOLDEN_SCHEMA_VERSION = 4
+GOLDEN_SCHEMA_VERSION = 5
 
 # JSON floats round-trip exactly, but libm differs by an ULP across builds.
 GOLDEN_FLOAT_RTOL = 1e-9
@@ -48,6 +49,9 @@ WATERMARK_CONFIG_FIELDS = (
     "gamma",
     "aggregator",
     "aggregator_lambda",
+    "entropy_budget",
+    "num_blocks",
+    "num_columns",
     "context_width",
     "deduplicate_contexts",
     "deduplicate_contexts_max_history",
@@ -106,6 +110,9 @@ class WatermarkingSchemeConfig:
     p_value_threshold: float = 0.01
     delta: float = 2.0
     gamma: float = 0.25
+    entropy_budget: float = 0.2
+    num_blocks: int = 16
+    num_columns: int = 16
 
 
 @dataclass(frozen=True)
@@ -187,12 +194,29 @@ def _create_red_green_detector(
     )
 
 
+def _create_textgrain_detector(
+    key: int,
+    config: WatermarkingSchemeConfig,
+    prf: WatermarkPRFName,
+) -> WatermarkDetector:
+    return TextGrainWatermarkDetector(
+        key=key,
+        context_width=config.context_width,
+        p_value_threshold=config.p_value_threshold,
+        prf=prf,
+        deduplicate_contexts=config.detection_deduplicate_contexts,
+        num_blocks=config.num_blocks,
+        num_columns=config.num_columns,
+    )
+
+
 DETECTOR_FACTORIES = {
     "gumbel": _create_gumbel_detector,
     "dual_key_gumbel": _create_dual_key_gumbel_detector,
     "red_green": _create_red_green_detector,
     # Without speculation lookahead Gumbel-max samples like Gumbel-max.
     "lookahead_gumbel": _create_gumbel_detector,
+    "textgrain": _create_textgrain_detector,
 }
 
 
@@ -228,6 +252,9 @@ class WatermarkingCandidate:
                 "p_value_threshold": self.scheme_config.p_value_threshold,
                 "delta": self.scheme_config.delta,
                 "gamma": self.scheme_config.gamma,
+                "entropy_budget": self.scheme_config.entropy_budget,
+                "num_blocks": self.scheme_config.num_blocks,
+                "num_columns": self.scheme_config.num_columns,
             },
             "prf": self.prf,
             "prf_version": prf_version,
@@ -275,7 +302,7 @@ class WatermarkingCandidate:
                 "deduplicate_contexts": detector.deduplicate_contexts,
                 "alpha": getattr(detector, "alpha", None),
                 "gamma": getattr(detector, "gamma", None),
-                "prf_key": str(detector.prf.key),
+                "prf_key": str(detector.prf.key) if hasattr(detector, "prf") else None,
                 "key_b_prf_key": None if key_b_prf is None else str(key_b_prf.key),
             },
         }
@@ -360,6 +387,9 @@ class WatermarkingCandidate:
             alpha=self.scheme_config.generation_alpha,
             delta=self.scheme_config.delta,
             gamma=self.scheme_config.gamma,
+            entropy_budget=self.scheme_config.entropy_budget,
+            num_blocks=self.scheme_config.num_blocks,
+            num_columns=self.scheme_config.num_columns,
             context_width=self.scheme_config.context_width,
             deduplicate_contexts=(self.scheme_config.generation_deduplicate_contexts),
             deduplicate_contexts_max_history=(
@@ -462,6 +492,9 @@ def _candidate(
     p_value_threshold: float = 0.01,
     delta: float = 2.0,
     gamma: float = 0.25,
+    entropy_budget: float = 0.2,
+    num_blocks: int = 16,
+    num_columns: int = 16,
     fixture: DeterministicGenerationFixture = BALANCED_FIXTURE,
 ) -> WatermarkingCandidate:
     return WatermarkingCandidate(
@@ -481,6 +514,9 @@ def _candidate(
             p_value_threshold=p_value_threshold,
             delta=delta,
             gamma=gamma,
+            entropy_budget=entropy_budget,
+            num_blocks=num_blocks,
+            num_columns=num_columns,
         ),
         prf=prf,
         key=key,
@@ -678,6 +714,23 @@ WATERMARKING_CANDIDATES = (
     ),
     _candidate(
         "lookahead-gumbel-philox-key42-cw4", "lookahead_gumbel", 42, prf="philox"
+    ),
+    _candidate("textgrain-philox-key42-cw4", "textgrain", 42, prf="philox"),
+    _candidate(
+        "textgrain-philox-key42-cw4-wrong-key",
+        "textgrain",
+        42,
+        prf="philox",
+        detection_key=43,
+    ),
+    _candidate(
+        "textgrain-philox-key7-cw2-beta0.4-blocks8",
+        "textgrain",
+        7,
+        prf="philox",
+        context_width=2,
+        entropy_budget=0.4,
+        num_blocks=8,
     ),
 )
 

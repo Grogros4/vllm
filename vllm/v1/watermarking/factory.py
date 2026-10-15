@@ -8,6 +8,7 @@ from vllm.v1.watermarking.gumbel import (
 )
 from vllm.v1.watermarking.lookahead import LookaheadGumbelWatermarker
 from vllm.v1.watermarking.red_green import RedGreenWatermarker
+from vllm.v1.watermarking.textgrain import TextGrainWatermarker
 from vllm.v1.watermarking.watermarker import Watermarker
 
 
@@ -36,5 +37,14 @@ def create_watermarker(config: WatermarkConfig) -> Watermarker:
             config.prf,
             config.aggregator,
             config.aggregator_lambda,
+        )
+    if config.algorithm == "textgrain":
+        return TextGrainWatermarker(
+            config.key,
+            config.context_width,
+            config.prf,
+            config.entropy_budget,
+            config.num_blocks,
+            config.num_columns,
         )
     raise ValueError(f"Unknown watermarking algorithm: {config.algorithm}")
