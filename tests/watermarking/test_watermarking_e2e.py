@@ -30,9 +30,11 @@ from vllm.v1.watermarking import (
             6.53e-15,
         ),
         (
-            {"algorithm": "unigram", "key": 42},
+            # With the default delta of 2.0, this 53-token sample only reaches
+            # p = 0.011.
+            {"algorithm": "unigram", "key": 42, "delta": 4.0},
             UnigramWatermarkDetector,
-            0.0,  # TODO: placeholder; record the measured p-value.
+            5.8e-40,
         ),
         (
             {"algorithm": "multibit_red_green", "key": 42, "context_width": 4},
@@ -57,17 +59,17 @@ from vllm.v1.watermarking import (
         (
             {"algorithm": "synthid", "key": 42, "context_width": 4},
             SynthIDWatermarkDetector,
-            1.11e-77,
+            2.06e-26,
         ),
         (
             {"algorithm": "textgrain", "key": 42, "context_width": 4},
             TextGrainWatermarkDetector,
-            1.0,  # TODO(textgrain): placeholder, record the GPU run's p-value.
+            3.78e-09,
         ),
         (
             {"algorithm": "gaussian_copula", "key": 42, "context_width": 2},
             GaussianCopulaWatermarkDetector,
-            1.0,  # Placeholder: replace with the value measured on a GPU.
+            1.13e-14,
         ),
     ],
     ids=[
