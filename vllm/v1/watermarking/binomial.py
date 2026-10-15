@@ -117,8 +117,29 @@ def _level_best(
     return best, token_ids.masked_fill(best == float("-inf"), 0)
 
 
+def _least_probable_top_token(
+    log_probs: torch.Tensor, scores: torch.Tensor
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Reference implementation; the parity tests check the Triton kernel against it."""
+    vocab_size = log_probs.shape[-1]
+    log_probs = log_probs.masked_fill(log_probs.isnan(), float("-inf"))
+    finite = log_probs > float("-inf")
+    top_score = torch.where(finite, scores, -1).amax(dim=-1, keepdim=True)
+    at_top = finite & (scores == top_score)
+    least = torch.where(at_top, log_probs, float("inf")).amin(dim=-1, keepdim=True)
+    vocabulary = torch.arange(vocab_size, device=log_probs.device)
+    token_ids = torch.where(at_top & (log_probs == least), vocabulary, vocab_size)
+    token_ids = token_ids.amin(dim=-1)
+    return least.squeeze(-1), token_ids.masked_fill(token_ids == vocab_size, 0)
+
+
 class BinomialScoreWatermarker(Watermarker):
-    """Base for watermarks that favor tokens with high binomial scores."""
+    """Base for watermarks that favor tokens with high binomial scores.
+
+    As in the reference implementation, a token is watermarked only once the
+    output gives it a full context: the first ``context_width`` tokens of an
+    output are sampled without the watermark, and the detector skips them.
+    """
 
     def __init__(
         self,
@@ -142,6 +163,14 @@ class BinomialScoreWatermarker(Watermarker):
     def _thresholds_on(self, device: torch.device) -> torch.Tensor:
         return copy_to_device(self.thresholds, self._device_thresholds, device)
 
+    def _skip_partial_contexts(
+        self, contexts: torch.Tensor, skip_mask: torch.Tensor | None
+    ) -> torch.Tensor:
+        """Add the rows whose context reaches before the output, where it is
+        padded with -1, to ``skip_mask``."""
+        partial = (contexts < 0).any(dim=-1)
+        return partial if skip_mask is None else skip_mask | partial
+
     def scores(self, contexts: torch.Tensor, vocab_size: int) -> torch.Tensor:
         """Score of every token in each row's context: [num_rows, vocab_size]."""
         vocabulary = torch.arange(vocab_size, device=contexts.device)
@@ -152,18 +181,7 @@ class BinomialScoreWatermarker(Watermarker):
         self, log_probs: torch.Tensor, contexts: torch.Tensor
     ) -> torch.Tensor:
         """Total probability of each row's tokens per score:
-        [num_rows, num_trials + 1]. ``log_probs`` must be float32."""
-        if type(self.prf) is PhiloxPRF and log_probs.device.type == "cuda":
-            from vllm.v1.worker.gpu.sample.binomial_watermark import (
-                philox_level_mass,
-            )
-
-            return philox_level_mass(
-                log_probs,
-                contexts,
-                self.prf.key,
-                self._thresholds_on(log_probs.device),
-            )
+        [num_rows, num_trials + 1]."""
         scores = self.scores(contexts, log_probs.shape[-1])
         return _level_mass(log_probs, scores, self.num_trials + 1)
 
@@ -172,20 +190,21 @@ class BinomialScoreWatermarker(Watermarker):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Largest log-probability among each row's tokens per score (-inf
         without tokens) and the lowest token id attaining it (0 without tokens),
-        each [num_rows, num_trials + 1]. ``log_probs`` must be float32."""
-        if type(self.prf) is PhiloxPRF and log_probs.device.type == "cuda":
-            from vllm.v1.worker.gpu.sample.binomial_watermark import (
-                philox_level_best,
-            )
-
-            return philox_level_best(
-                log_probs,
-                contexts,
-                self.prf.key,
-                self._thresholds_on(log_probs.device),
-            )
+        each [num_rows, num_trials + 1]."""
         scores = self.scores(contexts, log_probs.shape[-1])
         return _level_best(log_probs, scores, self.num_trials + 1)
+
+    def level_best_and_least_probable_top(
+        self, log_probs: torch.Tensor, contexts: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """``level_best``, plus the log-probability and the lowest token id of
+        the least probable token among those with the highest score, each
+        [num_rows]."""
+        scores = self.scores(contexts, log_probs.shape[-1])
+        return (
+            *_level_best(log_probs, scores, self.num_trials + 1),
+            *_least_probable_top_token(log_probs, scores),
+        )
 
     def add_level_bias(
         self,
@@ -222,7 +241,8 @@ class BinomialScoreWatermarkDetector(WatermarkDetector):
 
     Under the null hypothesis each scored token's score is
     Binomial(num_trials, 1/2), independently, so the summed score is
-    Binomial(num_trials * num_scored_tokens, 1/2).
+    Binomial(num_trials * num_scored_tokens, 1/2). The first ``context_width``
+    tokens are not watermarked, so they are not scored.
     """
 
     def __init__(
@@ -240,6 +260,13 @@ class BinomialScoreWatermarkDetector(WatermarkDetector):
         self.prf = prf
         self.num_trials = num_trials
         self.thresholds = binomial_thresholds(num_trials)
+
+    def _prepare_inputs(
+        self, token_ids: list[int]
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        contexts, targets = super()._prepare_inputs(token_ids)
+        full = (contexts >= 0).all(dim=-1)
+        return contexts[full], targets[full]
 
     def _score_tokens(
         self, contexts: torch.Tensor, targets: torch.Tensor

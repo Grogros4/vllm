@@ -22,8 +22,9 @@ def create_watermarker(config: WatermarkConfig) -> Watermarker:
             config.alpha,
         )
     if config.algorithm == "chi_squared":
+        delta = 1.0 if config.delta is None else config.delta
         return ChiSquaredWatermarker(
-            config.key, config.context_width, config.prf, config.delta
+            config.key, config.context_width, config.prf, delta
         )
     if config.algorithm == "ppl_hard":
         return PPLHardWatermarker(

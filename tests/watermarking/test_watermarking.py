@@ -142,11 +142,15 @@ def test_gumbel_config_warns_when_context_deduplication_is_weak(
 
 
 @pytest.mark.parametrize(
-    ("algorithm", "warns"),
-    [("ppl_soft", True), ("ppl_hard", False), ("chi_squared", False)],
+    ("algorithm", "name"),
+    [
+        ("ppl_soft", "Soft perplexity"),
+        ("ppl_hard", "Hard perplexity"),
+        ("chi_squared", None),
+    ],
 )
-def test_deterministic_ppl_config_warns_when_context_deduplication_is_off(
-    monkeypatch, algorithm, warns
+def test_perplexity_configs_warn_when_context_deduplication_is_off(
+    monkeypatch, algorithm, name
 ):
     messages: list[str] = []
     monkeypatch.setattr(
@@ -156,9 +160,9 @@ def test_deterministic_ppl_config_warns_when_context_deduplication_is_off(
 
     WatermarkConfig(key=42, algorithm=algorithm, deduplicate_contexts="none")
 
-    assert len(messages) == (1 if warns else 0)
+    assert len(messages) == (0 if name is None else 1)
     assert all(
-        message.startswith("Soft perplexity watermarking with context deduplication")
+        message.startswith(f"{name} watermarking with context deduplication")
         for message in messages
     )
 

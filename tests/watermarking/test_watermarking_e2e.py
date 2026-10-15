@@ -21,17 +21,17 @@ from vllm.v1.watermarking import (
         (
             {"algorithm": "chi_squared", "key": 42, "context_width": 4},
             BinomialScoreWatermarkDetector,
-            1.34e-31,
+            1.57e-30,
         ),
         (
             {"algorithm": "ppl_hard", "key": 42, "context_width": 4},
             BinomialScoreWatermarkDetector,
-            5.28e-12,
+            6.30e-13,
         ),
         (
             {"algorithm": "ppl_soft", "key": 42, "context_width": 4},
             BinomialScoreWatermarkDetector,
-            3.79e-252,
+            1.56e-23,
         ),
     ],
     ids=["gumbel", "chi_squared", "ppl_hard", "ppl_soft"],

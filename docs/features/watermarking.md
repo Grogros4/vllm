@@ -199,14 +199,14 @@ vllm serve MODEL \
 
 ### Chi-squared
 
-The chi-squared watermark comes from the constrained optimization framework of
-[Gloaguen et al. (2026)](https://arxiv.org/abs/2602.06754). The key and the
-prior token context give every candidate token a score `g_u` drawn from
-Binomial(30, 1/2), and sampling draws token `u` with probability
-`p_u * max(0, 1 + delta * (g_u + mu))`, where `p` is the model's next-token
-distribution after temperature scaling and top-k/top-p filtering and `mu`
-normalizes the distribution. This maximizes the expected score minus a
-chi-squared penalty on the distance from `p`; a larger `delta` (default 1.0)
+The chi-squared watermark of [Gloaguen et al. (2026)](https://arxiv.org/abs/2602.06754)
+is derived as a generalization of [SynthID-Text](https://www.nature.com/articles/s41586-024-08025-4).
+The key and the prior token context give every candidate token a score `g_u` drawn from
+Binomial(30, 1/2). The weights `w_u = max(0, 1 + delta * (g_u + mu))` make
+`p_u * w_u` the distribution with the highest expected score minus a
+chi-squared distance from `p`, where `p` is the model's
+next-token distribution  and `mu` normalizes the distribution. Tokens are
+drawn from `p_u * w_u`, as in the paper. A larger `delta` (default 1.0)
 gives a stronger watermark and more distortion:
 
 ```bash
@@ -214,8 +214,9 @@ vllm serve MODEL \
   --watermark-config '{"algorithm":"chi_squared","key":42,"delta":1.0}'
 ```
 
-Detection sums the scores of the scored tokens and reports the binomial tail
-probability of at least that sum:
+The first `context_width` tokens of an output, which lack a full context,
+are neither watermarked nor scored. Detection sums the scores of the
+scored tokens and reports the binomial tail probability of at least that sum:
 
 ```python
 from vllm.v1.watermarking import BinomialScoreWatermarkDetector
@@ -228,21 +229,25 @@ The chi-squared watermark does not support
 
 ### Perplexity
 
-The perplexity watermarks of
-[Gloaguen et al. (2026)](https://arxiv.org/abs/2602.06754) use the same scores
-as the chi-squared watermark but bound how far the watermark raises the
+The perplexity watermarks of [Gloaguen et al. (2026)](https://arxiv.org/abs/2602.06754)
+use the same scores as the chi-squared watermark but bound how far the watermark raises the
 surprisal `-log p` of the sampled token, with a budget of `epsilon` nats per
 token (default 0):
 
 - `ppl_hard` samples from the distribution with the highest expected score
   among those whose expected surprisal exceeds the entropy of `p` by at most
   `epsilon` for every key. The solution puts all of its probability on one or
-  two tokens.
+  two tokens. When several tokens share the highest score, budget left over
+  after the most probable of them goes to the least probable one.
 - `ppl_soft` deterministically selects the token maximizing
-  `g_u + lambda * log p_u`, with `lambda` the smallest value for which the
-  expected surprisal exceeds the entropy of `p` by at most `epsilon` on average
-  over keys. At every step, `lambda` is estimated from 128 Monte Carlo draws of
-  the scores of the 4096 most probable tokens.
+  `g_u + beta * log max(p_u, 1e-12)`, with `beta` set so that the expected
+  surprisal exceeds the entropy of `p` by `epsilon` on average over keys.
+  `beta` is found at every step by bisection over 128 Monte Carlo draws of
+  the token scores. The draws are derived from the context with a public
+  key, so they repeat with the context and do not depend on the rest of the
+  batch. Only the 4096 most probable tokens are drawn and can be selected,
+  so with `top_k` of at most 4096 this matches the reference
+  implementation, which uses every token.
 
 ```bash
 vllm serve MODEL \
@@ -250,7 +255,8 @@ vllm serve MODEL \
 ```
 
 Both are detected with `BinomialScoreWatermarkDetector`, like the chi-squared
-watermark, and neither supports [speculative decoding](#speculative-decoding).
+watermark, leave the first `context_width` tokens of an output unwatermarked
+like it, and neither supports [speculative decoding](#speculative-decoding).
 
 ### SynthID-Text
 
