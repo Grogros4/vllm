@@ -9,6 +9,9 @@ forces the fp32 copy in ``apply_sampling_params``, so the first ordinary
 temperature-1.0 request is the first launch with model-dtype logits and pays
 the compilation inside inference. This pre-compiles every specialization the
 sampler path can launch for the configured watermark.
+
+``_philox_gaussian_copula_kernel`` is keyed the same way, except that it always
+gets a skip mask.
 """
 
 from __future__ import annotations
@@ -61,6 +64,17 @@ def _philox_sampler_keys(watermarker: Watermarker) -> list[int]:
     return [key for key in map(_philox_key, watermarkers) if key is not None]
 
 
+def _philox_gaussian_copula_args(watermarker: Watermarker) -> tuple[int, float] | None:
+    """Key and correlation the Gaussian copula kernel is launched with, or None."""
+    from vllm.v1.watermarking.gaussian_copula import GaussianCopulaWatermarker
+    from vllm.v1.watermarking.prfs import PhiloxPRF
+
+    if not isinstance(watermarker, GaussianCopulaWatermarker):
+        return None
+    prf = watermarker.prf
+    return (prf.key, watermarker.correlation) if type(prf) is PhiloxPRF else None
+
+
 @torch.inference_mode()
 def watermark_sample_warmup(worker: Worker) -> None:
     if getattr(worker.vllm_config, "watermark_config", None) is None:
@@ -72,6 +86,9 @@ def watermark_sample_warmup(worker: Worker) -> None:
         return
 
     from vllm.v1.watermarking.gpu_sampler import GPUWatermarkSampler
+    from vllm.v1.worker.gpu.sample.gaussian_copula_watermark import (
+        philox_gaussian_copula_sample,
+    )
     from vllm.v1.worker.gpu.sample.watermark import philox_gumbel_sample
 
     # Read the sampler the runner built instead of rebuilding it from config:
@@ -87,7 +104,8 @@ def watermark_sample_warmup(worker: Worker) -> None:
     device = worker.device
     try:
         keys = _philox_sampler_keys(sampler.watermarker)
-        if not keys:
+        gaussian_copula_args = _philox_gaussian_copula_args(sampler.watermarker)
+        if not keys and gaussian_copula_args is None:
             return
 
         # The sampler passes model-dtype logits through when no logits
@@ -151,5 +169,17 @@ def watermark_sample_warmup(worker: Worker) -> None:
                         use_fp64=use_skip_mask and sampler.use_fp64_gumbel,
                         **(sampling_state if use_skip_mask else {}),
                     )
+            if gaussian_copula_args is not None:
+                key, correlation = gaussian_copula_args
+                # The watermarker adds the rows without a full context to the
+                # skip mask, so the kernel always gets one.
+                philox_gaussian_copula_sample(
+                    logits,
+                    contexts,
+                    key,
+                    correlation,
+                    use_fp64=sampler.use_fp64_gumbel,
+                    **sampling_state,
+                )
     except Exception:
         logger.warning("Skipping watermark sampler warmup.", exc_info=True)

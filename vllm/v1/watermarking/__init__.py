@@ -4,6 +4,10 @@
 from vllm.config.watermarking import derive_watermark_key
 from vllm.v1.watermarking.detector import WatermarkDetection, WatermarkDetector
 from vllm.v1.watermarking.factory import create_watermarker
+from vllm.v1.watermarking.gaussian_copula import (
+    GaussianCopulaWatermarkDetector,
+    GaussianCopulaWatermarker,
+)
 from vllm.v1.watermarking.gumbel import (
     DualKeyGumbelWatermarkDetector,
     DualKeyGumbelWatermarker,
@@ -24,6 +28,8 @@ from vllm.v1.watermarking.watermarker import (
 __all__ = [
     "DualKeyGumbelWatermarkDetector",
     "DualKeyGumbelWatermarker",
+    "GaussianCopulaWatermarkDetector",
+    "GaussianCopulaWatermarker",
     "GumbelWatermarkDetector",
     "GumbelWatermarker",
     "PhiloxPRF",

@@ -12,7 +12,7 @@ from vllm.logger import init_logger
 
 logger = init_logger(__name__)
 
-WatermarkingAlgorithm = Literal["gumbel", "dual_key_gumbel"]
+WatermarkingAlgorithm = Literal["gumbel", "dual_key_gumbel", "gaussian_copula"]
 WatermarkPRFName = Literal["philox"]
 WatermarkContextScope = Literal["none", "single_turn", "all"]
 
@@ -34,6 +34,10 @@ class WatermarkConfig:
     """Algorithm used to watermark generated text."""
     alpha: float = Field(default=0.1, ge=0, le=1)
     """Probability of selecting key B for dual-key watermarking."""
+    correlation: float = Field(default=0.98551, gt=0, le=1)
+    """Keyed share of the Gaussian behind the Gumbel noise of Gaussian copula
+    watermarking; 1 makes the noise fully keyed. The default is AutoMark's,
+    chosen to match the quality of TextSeal at alpha 0.1."""
     context_width: int = Field(default=4, ge=1)
     """Number of prior tokens used by the watermark PRF."""
     deduplicate_contexts: WatermarkContextScope = "single_turn"
@@ -64,11 +68,16 @@ class WatermarkConfig:
             self.deduplicate_contexts_max_history is not None
             and self.deduplicate_contexts_max_history < _MIN_RECOMMENDED_DEDUP_HISTORY
         )
-        if self.algorithm in ("gumbel", "dual_key_gumbel") and (
+        if self.algorithm in ("gumbel", "dual_key_gumbel", "gaussian_copula") and (
             self.deduplicate_contexts == "none" or history_is_too_short
         ):
+            name = (
+                "Gaussian copula"
+                if self.algorithm == "gaussian_copula"
+                else "Gumbel-max"
+            )
             logger.warning_once(
-                "Gumbel-max watermarking with context deduplication "
+                f"{name} watermarking with context deduplication "
                 "disabled or limited to fewer than "
                 f"{_MIN_RECOMMENDED_DEDUP_HISTORY} positions may increase the "
                 "frequency of degenerate generations, including repetition loops. "
