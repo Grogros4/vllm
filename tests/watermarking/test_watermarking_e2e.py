@@ -11,6 +11,7 @@ from vllm.v1.watermarking import (
     MultibitRedGreenWatermarkDetector,
     RedGreenWatermarkDetector,
     SynthIDWatermarkDetector,
+    TextGrainWatermarkDetector,
 )
 
 
@@ -51,6 +52,11 @@ from vllm.v1.watermarking import (
             SynthIDWatermarkDetector,
             1.11e-77,
         ),
+        (
+            {"algorithm": "textgrain", "key": 42, "context_width": 4},
+            TextGrainWatermarkDetector,
+            1.0,  # TODO(textgrain): placeholder, record the GPU run's p-value.
+        ),
     ],
     ids=[
         "gumbel",
@@ -60,6 +66,7 @@ from vllm.v1.watermarking import (
         "ppl_hard",
         "ppl_soft",
         "synthid",
+        "textgrain",
     ],
 )
 def test_llm_generated_sequence_is_watermarked(

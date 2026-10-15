@@ -32,6 +32,10 @@ from vllm.v1.watermarking.synthid import (
     SynthIDWatermarkDetector,
     SynthIDWatermarker,
 )
+from vllm.v1.watermarking.textgrain import (
+    TextGrainWatermarkDetector,
+    TextGrainWatermarker,
+)
 from vllm.v1.watermarking.watermarker import (
     SupportsSpeculativeDecoding,
     SupportsVerificationLogits,
@@ -59,6 +63,8 @@ __all__ = [
     "SupportsVerificationLogits",
     "SynthIDWatermarkDetector",
     "SynthIDWatermarker",
+    "TextGrainWatermarkDetector",
+    "TextGrainWatermarker",
     "WatermarkDetection",
     "WatermarkDetector",
     "WatermarkPRF",

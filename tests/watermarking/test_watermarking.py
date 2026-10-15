@@ -100,6 +100,7 @@ def make_gpu_watermark_sampler(monkeypatch):
         "ppl_hard",
         "ppl_soft",
         "synthid",
+        "textgrain",
     ],
 )
 def test_watermarker_contract(algorithm: str):

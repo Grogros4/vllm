@@ -110,6 +110,8 @@ because their recovery tokens are watermarked. The `red_green` is not diluted, a
 verification uses the watermarked logits from the target model (see [Red-Green](#red-green-red-green-list)).
 `multibit_red_green` and `synthid` are rejected even with
 `allow_target_only_watermarking`.
+`textgrain` verifies drafts against its watermarked distribution in the same
+way and needs no `allow_target_only_watermarking` (see [textGrain](#textgrain)).
 
 For `dual_key_gumbel`, `alpha` has no effect under speculative decoding. The
 speculative protocol selects the key for each token instead.
@@ -333,6 +335,43 @@ vllm serve MODEL \
 Both are detected with `BinomialScoreWatermarkDetector`, like the chi-squared
 watermark, leave the first `context_width` tokens of an output unwatermarked
 like it, and neither supports [speculative decoding](#speculative-decoding).
+
+### textGrain
+
+The textGrain watermark of the technical report "textGrain: Entropy-Calibrated
+Watermarking for Language Model Text" (Li et al., 2026) removes a chosen
+fraction of the sampling entropy. The key and the prior token context give a
+keyed partition of the vocabulary into `num_blocks` blocks, a table of Gumbel
+costs over the blocks and `num_columns` columns, and a keyed column. Entropic
+optimal transport couples the block probabilities of `p`, the model's
+distribution after temperature scaling and top-k/top-p filtering, to the
+columns, so that the coupling removes on average a fraction `entropy_budget`
+of the entropy of `p`, or less when the blocks cannot carry that much. The
+ordinary random sampler then draws a block from the keyed column and a token
+within the block in proportion to `p`; averaged over the column, tokens still
+follow `p`. `entropy_budget` defaults to 0.2, and `num_blocks` and
+`num_columns` to 16:
+
+```bash
+vllm serve MODEL \
+  --watermark-config '{"algorithm":"textgrain","key":42,"entropy_budget":0.2}'
+```
+
+With speculative decoding, drafts are not watermarked and verification uses the
+watermarked target distribution, so every output token follows it without
+`allow_target_only_watermarking`.
+
+The detector scores the first occurrence of each context. The observed token's
+block and the keyed column select a cell whose score is Exp(1) without the
+watermark, and the p-value is the Gamma tail of the summed scores. Detection
+needs the key, context width and block and column counts, but not the model or
+the entropy budget:
+
+```python
+from vllm.v1.watermarking import TextGrainWatermarkDetector
+
+result = TextGrainWatermarkDetector(key=42).detect(token_ids)
+```
 
 ### SynthID-Text
 

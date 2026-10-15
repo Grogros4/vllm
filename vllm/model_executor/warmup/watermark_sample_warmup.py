@@ -10,8 +10,8 @@ temperature-1.0 request is the first launch with model-dtype logits and pays
 the compilation inside inference. This pre-compiles every specialization the
 sampler path can launch for the configured watermark.
 
-The SynthID watermarker launches its kernels from ``sample``, so for it the
-warmup samples once per logits dtype and skip-mask setting.
+The SynthID and textGrain watermarkers launch their kernels from ``sample``,
+so for them the warmup samples once per logits dtype and skip-mask setting.
 
 The generic sampler warmup runs the chi-squared and perplexity watermarkers
 on fp32 logits. The perplexity watermarkers convert logits to fp32 before
@@ -136,6 +136,18 @@ def _philox_synthid_watermarker(watermarker: Watermarker):
     return None
 
 
+def _philox_textgrain_watermarker(watermarker: Watermarker):
+    """The watermarker when it launches the block-coupling kernel, else None."""
+    from vllm.v1.watermarking.prfs import PhiloxPRF
+    from vllm.v1.watermarking.textgrain import TextGrainWatermarker
+
+    if isinstance(watermarker, TextGrainWatermarker) and all(
+        type(prf) is PhiloxPRF for prf in watermarker.prfs
+    ):
+        return watermarker
+    return None
+
+
 @torch.inference_mode()
 def watermark_sample_warmup(worker: Worker) -> None:
     if getattr(worker.vllm_config, "watermark_config", None) is None:
@@ -174,12 +186,14 @@ def watermark_sample_warmup(worker: Worker) -> None:
         lookahead = _philox_lookahead_watermarker(sampler.watermarker)
         chi_squared = _philox_chi_squared_watermarker(sampler.watermarker)
         synthid = _philox_synthid_watermarker(sampler.watermarker)
+        textgrain = _philox_textgrain_watermarker(sampler.watermarker)
         if (
             not keys
             and red_green is None
             and multibit is None
             and chi_squared is None
             and synthid is None
+            and textgrain is None
         ):
             return
 
@@ -308,7 +322,9 @@ def watermark_sample_warmup(worker: Worker) -> None:
                     ),
                     sampling_state["skip_mask"],
                 )
-            if synthid is not None:
+            for sampled in (synthid, textgrain):
+                if sampled is None:
+                    continue
                 random_sampler = RandomSampler(
                     expanded_idx_mapping=sampling_state["expanded_idx_mapping"],
                     temperatures=sampling_state["temperatures"],
@@ -317,7 +333,7 @@ def watermark_sample_warmup(worker: Worker) -> None:
                     use_fp64=sampler.use_fp64_gumbel,
                 )
                 for use_skip_mask in with_skip_mask:
-                    synthid.sample(
+                    sampled.sample(
                         logits,
                         contexts,
                         random_sampler,

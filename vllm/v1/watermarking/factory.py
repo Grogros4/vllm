@@ -14,6 +14,7 @@ from vllm.v1.watermarking.multibit_red_green import MultibitRedGreenWatermarker
 from vllm.v1.watermarking.perplexity import PPLHardWatermarker, PPLSoftWatermarker
 from vllm.v1.watermarking.red_green import RedGreenWatermarker
 from vllm.v1.watermarking.synthid import SynthIDWatermarker
+from vllm.v1.watermarking.textgrain import TextGrainWatermarker
 from vllm.v1.watermarking.watermarker import Watermarker
 
 
@@ -73,5 +74,14 @@ def create_watermarker(config: WatermarkConfig) -> Watermarker:
             config.prf,
             config.depth,
             config.num_leaves,
+        )
+    if config.algorithm == "textgrain":
+        return TextGrainWatermarker(
+            config.key,
+            config.context_width,
+            config.prf,
+            config.entropy_budget,
+            config.num_blocks,
+            config.num_columns,
         )
     raise ValueError(f"Unknown watermarking algorithm: {config.algorithm}")

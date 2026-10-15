@@ -26,6 +26,7 @@ from vllm.v1.watermarking import (
     MultibitRedGreenWatermarkDetector,
     RedGreenWatermarkDetector,
     SynthIDWatermarkDetector,
+    TextGrainWatermarkDetector,
     WatermarkDetection,
     WatermarkDetector,
     create_prf,
@@ -33,7 +34,7 @@ from vllm.v1.watermarking import (
 )
 from vllm.v1.worker.gpu.sample.watermark import repeated_context_mask
 
-GOLDEN_SCHEMA_VERSION = 5
+GOLDEN_SCHEMA_VERSION = 6
 
 # JSON floats round-trip exactly, but libm differs by an ULP across builds.
 GOLDEN_FLOAT_RTOL = 1e-9
@@ -56,6 +57,9 @@ WATERMARK_CONFIG_FIELDS = (
     "epsilon",
     "depth",
     "num_leaves",
+    "entropy_budget",
+    "num_blocks",
+    "num_columns",
     "context_width",
     "deduplicate_contexts",
     "deduplicate_contexts_max_history",
@@ -120,6 +124,9 @@ class WatermarkingSchemeConfig:
     epsilon: float = 0.0
     depth: int = 30
     num_leaves: int = 2
+    entropy_budget: float = 0.2
+    num_blocks: int = 16
+    num_columns: int = 16
 
 
 @dataclass(frozen=True)
@@ -245,6 +252,22 @@ def _create_synthid_detector(
     )
 
 
+def _create_textgrain_detector(
+    key: int,
+    config: WatermarkingSchemeConfig,
+    prf: WatermarkPRFName,
+) -> WatermarkDetector:
+    return TextGrainWatermarkDetector(
+        key=key,
+        context_width=config.context_width,
+        p_value_threshold=config.p_value_threshold,
+        prf=prf,
+        deduplicate_contexts=config.detection_deduplicate_contexts,
+        num_blocks=config.num_blocks,
+        num_columns=config.num_columns,
+    )
+
+
 DETECTOR_FACTORIES = {
     "gumbel": _create_gumbel_detector,
     "dual_key_gumbel": _create_dual_key_gumbel_detector,
@@ -256,6 +279,7 @@ DETECTOR_FACTORIES = {
     "ppl_hard": _create_binomial_score_detector,
     "ppl_soft": _create_binomial_score_detector,
     "synthid": _create_synthid_detector,
+    "textgrain": _create_textgrain_detector,
 }
 
 
@@ -296,6 +320,9 @@ class WatermarkingCandidate:
                 "epsilon": self.scheme_config.epsilon,
                 "depth": self.scheme_config.depth,
                 "num_leaves": self.scheme_config.num_leaves,
+                "entropy_budget": self.scheme_config.entropy_budget,
+                "num_blocks": self.scheme_config.num_blocks,
+                "num_columns": self.scheme_config.num_columns,
             },
             "prf": self.prf,
             "prf_version": prf_version,
@@ -441,6 +468,9 @@ class WatermarkingCandidate:
             epsilon=self.scheme_config.epsilon,
             depth=self.scheme_config.depth,
             num_leaves=self.scheme_config.num_leaves,
+            entropy_budget=self.scheme_config.entropy_budget,
+            num_blocks=self.scheme_config.num_blocks,
+            num_columns=self.scheme_config.num_columns,
             context_width=self.scheme_config.context_width,
             deduplicate_contexts=(self.scheme_config.generation_deduplicate_contexts),
             deduplicate_contexts_max_history=(
@@ -548,6 +578,9 @@ def _candidate(
     epsilon: float = 0.0,
     depth: int = 30,
     num_leaves: int = 2,
+    entropy_budget: float = 0.2,
+    num_blocks: int = 16,
+    num_columns: int = 16,
     fixture: DeterministicGenerationFixture = BALANCED_FIXTURE,
 ) -> WatermarkingCandidate:
     return WatermarkingCandidate(
@@ -572,6 +605,9 @@ def _candidate(
             epsilon=epsilon,
             depth=depth,
             num_leaves=num_leaves,
+            entropy_budget=entropy_budget,
+            num_blocks=num_blocks,
+            num_columns=num_columns,
         ),
         prf=prf,
         key=key,
@@ -847,6 +883,23 @@ WATERMARKING_CANDIDATES = (
         context_width=2,
         depth=4,
         num_leaves=3,
+    ),
+    _candidate("textgrain-philox-key42-cw4", "textgrain", 42, prf="philox"),
+    _candidate(
+        "textgrain-philox-key42-cw4-wrong-key",
+        "textgrain",
+        42,
+        prf="philox",
+        detection_key=43,
+    ),
+    _candidate(
+        "textgrain-philox-key7-cw2-beta0.4-blocks8",
+        "textgrain",
+        7,
+        prf="philox",
+        context_width=2,
+        entropy_budget=0.4,
+        num_blocks=8,
     ),
 )
 

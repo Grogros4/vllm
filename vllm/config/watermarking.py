@@ -22,6 +22,7 @@ WatermarkingAlgorithm = Literal[
     "ppl_hard",
     "ppl_soft",
     "synthid",
+    "textgrain",
 ]
 LookaheadAggregator = Literal["pi1", "pi2", "max", "tsum", "min", "lin", "expsum"]
 WatermarkPRFName = Literal["philox"]
@@ -76,6 +77,13 @@ class WatermarkConfig:
     num_leaves: int = Field(default=2, ge=2)
     """Number of draws per tournament match of SynthID watermarking. More than
     two strengthens the watermark but distorts the output distribution."""
+    entropy_budget: float = Field(default=0.2, ge=0, le=1)
+    """Average fraction of the next-token entropy textGrain watermarking
+    removes. A larger budget gives a stronger watermark and more distortion."""
+    num_blocks: int = Field(default=16, ge=2)
+    """Number of keyed vocabulary blocks of textGrain watermarking."""
+    num_columns: int = Field(default=16, ge=2)
+    """Number of keyed columns textGrain couples the blocks to."""
     context_width: int = Field(default=4, ge=1)
     """Number of prior tokens used by the watermark PRF."""
     deduplicate_contexts: WatermarkContextScope = "single_turn"
@@ -96,7 +104,8 @@ class WatermarkConfig:
 
     @property
     def supports_speculative_decoding(self) -> bool:
-        return self.algorithm in ("dual_key_gumbel", "lookahead_gumbel")
+        # textGrain verifies drafts against its watermarked distribution.
+        return self.algorithm in ("dual_key_gumbel", "lookahead_gumbel", "textgrain")
 
     @model_validator(mode="after")
     def validate_watermark_settings(self) -> Self:
