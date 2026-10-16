@@ -4,6 +4,11 @@
 import torch
 
 from vllm.triton_utils import HAS_TRITON, tl, triton
+from vllm.v1.watermarking.concordmark import (
+    _COMMON_FLOOR,
+    _NUM_VOICES,
+    _TALLY_TIER,
+)
 from vllm.v1.watermarking.prfs.philox import (
     _CONTEXT_DOMAIN as _CONTEXT_DOMAIN_VALUE,
 )
@@ -41,6 +46,10 @@ _CONTEXT_DOMAIN = (
     tl.constexpr(_CONTEXT_DOMAIN_VALUE) if HAS_TRITON else _CONTEXT_DOMAIN_VALUE
 )
 _TOKEN_DOMAIN = tl.constexpr(_TOKEN_DOMAIN_VALUE) if HAS_TRITON else _TOKEN_DOMAIN_VALUE
+
+_CM_TALLY_TIER = tl.constexpr(_TALLY_TIER) if HAS_TRITON else _TALLY_TIER
+_CM_COMMON_FLOOR = tl.constexpr(_COMMON_FLOOR) if HAS_TRITON else _COMMON_FLOOR
+_CM_NUM_VOICES = tl.constexpr(_NUM_VOICES) if HAS_TRITON else _NUM_VOICES
 
 
 @triton.jit
@@ -1152,3 +1161,111 @@ def philox_multibit_bias(
         BLOCK_SIZE=block_size,
     )
     return output
+
+
+@triton.jit
+def _concordmark_contexts_kernel(
+    contexts_ptr,
+    context_stride,
+    skip_ptr,
+    all_token_ids_ptr,
+    all_token_ids_stride,
+    req_indices_ptr,
+    prompt_lens_ptr,
+    total_lens_ptr,
+    seeds_ptr,
+    MAX_WIDTH: tl.constexpr,
+    WIDTH_BLOCK: tl.constexpr,
+    MAX_HISTORY: tl.constexpr,
+    BLOCK: tl.constexpr,
+):
+    row = tl.program_id(0).to(tl.int64)
+    req_idx = tl.load(req_indices_ptr + row).to(tl.int64)
+    valid = req_idx >= 0
+    req_idx = tl.maximum(req_idx, 0)
+    prompt_len = tl.load(prompt_lens_ptr + req_idx).to(tl.int64)
+    total_len = tl.load(total_lens_ptr + req_idx).to(tl.int64)
+    length = tl.where(valid, total_len - prompt_len, 0)
+    history = all_token_ids_ptr + req_idx * all_token_ids_stride + prompt_len
+
+    # A 32-bit hash of the request's sampling seed picks its voice.
+    seed = tl.load(seeds_ptr + req_idx).to(tl.int64)
+    mixed = (seed ^ (seed >> 32)) & _UINT32_MASK
+    mixed = (((mixed >> 16) ^ mixed) * 0x45D9F3B) & _UINT32_MASK
+    mixed = (((mixed >> 16) ^ mixed) * 0x45D9F3B) & _UINT32_MASK
+    voice = ((mixed >> 16) ^ mixed) % _CM_NUM_VOICES
+
+    # Lane j holds the window of width j + 1; `current[j]` is token L - 1 - j.
+    lanes = tl.arange(0, WIDTH_BLOCK)
+    num_widths = tl.minimum(length, MAX_WIDTH)
+    in_window = lanes < num_widths
+    current = tl.load(
+        history + tl.maximum(length - 1 - lanes, 0), mask=in_window, other=-1
+    )
+
+    # counts[j]: positions p in [max(j + 1, L - MAX_HISTORY), L - 1] whose
+    # preceding window of width j + 1 equals the current one.
+    scan_start = 1
+    if MAX_HISTORY > 0:
+        scan_start = tl.maximum(length - MAX_HISTORY, 1)
+    counts = tl.zeros((WIDTH_BLOCK,), dtype=tl.int32)
+    offsets = tl.arange(0, BLOCK)
+    for block_start in tl.range(scan_start, length, BLOCK):
+        positions = block_start + offsets
+        token_pos = positions[:, None] - 1 - lanes[None, :]
+        mask = (positions[:, None] < length) & (token_pos >= 0)
+        tokens = tl.load(history + tl.maximum(token_pos, 0), mask=mask, other=-1)
+        mismatch = ((tokens != current[None, :]) | ~mask).to(tl.int32)
+        matches = tl.cumsum(mismatch, axis=1) == 0
+        counts += tl.sum(matches.to(tl.int32), axis=0)
+
+    last = tl.sum(tl.where(lanes == 0, current, 0), axis=0)
+    low = tl.minimum(tl.where(last < _CM_COMMON_FLOOR, 2, 1), num_widths)
+    widths = lanes + 1
+    room = (widths >= low) & in_window & (counts < _CM_TALLY_TIER)
+    chosen = tl.min(tl.where(room, widths, num_widths), axis=0)
+    tally = tl.sum(tl.where(widths == chosen, counts, 0), axis=0)
+
+    context_row = contexts_ptr + row * context_stride
+    tl.store(context_row, chosen)
+    tl.store(context_row + 1, tally)
+    tl.store(context_row + 2, voice)
+    tl.store(
+        context_row + 3 + MAX_WIDTH - 1 - lanes,
+        tl.where(lanes < chosen, current, -1),
+        mask=lanes < MAX_WIDTH,
+    )
+    tl.store(skip_ptr + row, length == 0)
+
+
+def concordmark_contexts(
+    all_token_ids: torch.Tensor,
+    req_indices: torch.Tensor,
+    prompt_lens: torch.Tensor,
+    total_lens: torch.Tensor,
+    seeds: torch.Tensor,
+    max_width: int,
+    max_history: int | None,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return ConcordMark contexts per row, as `_ladder_contexts` builds them,
+    and the rows without one (padding, no generated token yet)."""
+    num_rows = len(req_indices)
+    device = all_token_ids.device
+    contexts = torch.empty((num_rows, max_width + 3), dtype=torch.int64, device=device)
+    skip = torch.empty(num_rows, dtype=torch.bool, device=device)
+    _concordmark_contexts_kernel[(num_rows,)](
+        contexts,
+        contexts.stride(0),
+        skip,
+        all_token_ids,
+        all_token_ids.stride(0),
+        req_indices.contiguous(),
+        prompt_lens,
+        total_lens,
+        seeds,
+        MAX_WIDTH=max_width,
+        WIDTH_BLOCK=max(2, triton.next_power_of_2(max_width)),
+        MAX_HISTORY=0 if max_history is None else max_history,
+        BLOCK=256,
+    )
+    return contexts, skip

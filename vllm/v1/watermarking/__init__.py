@@ -4,6 +4,10 @@
 from vllm.config.watermarking import derive_watermark_key
 from vllm.v1.watermarking.binomial import BinomialScoreWatermarkDetector
 from vllm.v1.watermarking.chi_squared import ChiSquaredWatermarker
+from vllm.v1.watermarking.concordmark import (
+    ConcordMarkWatermarkDetector,
+    ConcordMarkWatermarker,
+)
 from vllm.v1.watermarking.detector import WatermarkDetection, WatermarkDetector
 from vllm.v1.watermarking.factory import create_watermarker
 from vllm.v1.watermarking.gaussian_copula import (
@@ -34,6 +38,10 @@ from vllm.v1.watermarking.red_green import (
     UnigramWatermarkDetector,
     UnigramWatermarker,
 )
+from vllm.v1.watermarking.rotation_first import (
+    RotationFirstWatermarkDetector,
+    RotationFirstWatermarker,
+)
 from vllm.v1.watermarking.synthid import (
     SynthIDWatermarkDetector,
     SynthIDWatermarker,
@@ -50,6 +58,8 @@ from vllm.v1.watermarking.watermarker import (
 )
 
 __all__ = [
+    "ConcordMarkWatermarkDetector",
+    "ConcordMarkWatermarker",
     "BinomialScoreWatermarkDetector",
     "ChiSquaredWatermarker",
     "DualKeyGumbelWatermarkDetector",
@@ -65,6 +75,8 @@ __all__ = [
     "PPLHardWatermarker",
     "PPLSoftWatermarker",
     "PhiloxPRF",
+    "RotationFirstWatermarkDetector",
+    "RotationFirstWatermarker",
     "RedGreenWatermarkDetector",
     "RedGreenWatermarker",
     "SupportsSpeculativeDecoding",

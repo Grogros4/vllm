@@ -400,6 +400,71 @@ from vllm.v1.watermarking import TextGrainWatermarkDetector
 result = TextGrainWatermarkDetector(key=42).detect(token_ids)
 ```
 
+### RotationFirst
+
+RotationFirst races exponential clocks over token classes: tokens that decode
+to the same lowercase word of at least three letters (`the`, `The`, `THE`)
+form one eligible class, and all other tokens are singletons. Each request
+draws a private unit quaternion, and a keyed clock is its rotation distance to
+a quaternion derived from the key and a clock address. An eligible class not
+yet generated uses a global clock whose residual persists across steps; other
+classes are keyed by the previous token's class at its first occurrence, and
+otherwise use private clocks. A token is sampled privately within the winning
+class, so every token follows the model distribution. Only the 256 most likely
+candidates race; the remaining mass is sampled privately.
+
+```bash
+vllm serve MODEL \
+  --watermark-config '{"algorithm":"rotation_first","key":42}'
+```
+
+`context_width` and context deduplication are ignored. Classes are built from
+the tokenizer at startup, so `skip_tokenizer_init` is rejected. Per-request
+state takes `4 * num_eligible_classes + vocab_size / 8` bytes per
+`max_num_seqs` slot (about 184 KB for Llama 3). Speculative decoding is not
+supported.
+
+The state is committed when a token is sampled. A preempted request is not
+watermarked for its remaining tokens, and a step whose output is discarded
+(KV-load-failure recompute, trace replay, streaming-input sessions) loses
+watermark alignment for the rest of that request.
+
+```python
+from vllm.v1.watermarking import RotationFirstWatermarkDetector
+
+result = RotationFirstWatermarkDetector(key=42, tokenizer=tokenizer).detect(token_ids)
+```
+
+### ConcordMark
+
+ConcordMark samples with the Gumbel-max race, but seeds the PRF with a ladder
+over the request's generated tokens: the narrowest window of at most
+`context_width` tokens that occurred fewer than four times among the last
+`deduplicate_contexts_max_history` positions, together with its width and
+occurrence count. The count keeps PRF inputs distinct within that window, so
+`deduplicate_contexts` is ignored, and short windows keep more positions
+recoverable after edits. Each request uses one of six key streams, chosen by
+its sampling seed. The first generated token is not watermarked.
+ConcordMark does not support speculative decoding.
+
+```bash
+vllm serve MODEL \
+  --watermark-config '{"algorithm":"concordmark","key":42}'
+```
+
+The detector needs only the generated token IDs. Passing each token's
+log-probability and its top-8 alternatives under the generation model, for
+example from a `prompt_logprobs=8` pass over the completion, strengthens
+detection:
+
+```python
+from vllm.v1.watermarking import ConcordMarkWatermarkDetector
+
+detector = ConcordMarkWatermarkDetector(key=42)
+result = detector.detect(token_ids)
+result = detector.detect(token_ids, logprobs)  # [(logprob, {token: logprob}), ...]
+```
+
 ### SynthID-Text
 
 [SynthID-Text](https://www.nature.com/articles/s41586-024-08025-4) samples

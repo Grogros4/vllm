@@ -45,10 +45,17 @@ class RandomSampler:
 
 
 class Watermarker(ABC):
+    stateful: bool = False
+    """Whether sampling updates per-request state reset by ``add_request``."""
+
     @property
     @abstractmethod
     def context_width(self) -> int:
         raise NotImplementedError
+
+    def add_request(self, req_idx: int) -> None:
+        """Reset the state of a request slot."""
+        return None
 
     def sample(
         self,

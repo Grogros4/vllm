@@ -1364,6 +1364,8 @@ class VllmConfig:
                 "ppl_soft",
                 "synthid",
                 "gaussian_copula",
+                "rotation_first",
+                "concordmark",
             ):
                 raise ValueError(
                     f"The '{watermark_config.algorithm}' watermarking algorithm "

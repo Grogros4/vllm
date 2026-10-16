@@ -197,6 +197,9 @@ def watermark_sample_warmup(worker: Worker) -> None:
     speculative = getattr(worker.vllm_config, "speculative_config", None) is not None
     device = worker.device
     try:
+        if getattr(sampler.watermarker, "stateful", False):
+            _stateful_sample_warmup(sampler, model_config, device)
+            return
         keys = _philox_sampler_keys(sampler.watermarker)
         red_green = _philox_red_green_watermarker(sampler.watermarker)
         multibit = _philox_multibit_red_green_watermarker(sampler.watermarker)
@@ -235,14 +238,14 @@ def watermark_sample_warmup(worker: Worker) -> None:
             device=device,
         )
         # Dtypes mirror the runtime buffers the sampler passes and are part of
-        # the specialization key: int32 request-state token ids, int64 index and
-        # seed buffers, fp32 sampling temperatures.
+        # the specialization key: int32 request-state token ids and request
+        # indices, int64 position and seed buffers, fp32 sampling temperatures.
         sampling_state = {
             "skip_mask": torch.zeros(
                 _NUM_WARMUP_TOKENS, dtype=torch.bool, device=device
             ),
             "expanded_idx_mapping": torch.zeros(
-                _NUM_WARMUP_TOKENS, dtype=torch.int64, device=device
+                _NUM_WARMUP_TOKENS, dtype=torch.int32, device=device
             ),
             "temperatures": torch.ones(
                 _NUM_WARMUP_TOKENS, dtype=torch.float32, device=device
@@ -252,6 +255,16 @@ def watermark_sample_warmup(worker: Worker) -> None:
                 _NUM_WARMUP_TOKENS, dtype=torch.int64, device=device
             ),
         }
+        if sampler.concordmark is not None:
+            # Also compiles its context kernel; it always passes a skip mask.
+            contexts, _ = sampler.concordmark.contexts_from_history(
+                sampler.req_states.all_token_ids.gpu,
+                sampling_state["expanded_idx_mapping"],
+                sampler.req_states.prompt_len.gpu,
+                sampler.req_states.total_len.gpu,
+                sampler.sampling_states.seeds.gpu,
+            )
+            with_skip_mask = (True,)
 
         logger.info(
             "Warming up watermark sampler kernel (vocab=%d, keys=%d, dtypes=%s, "
@@ -374,3 +387,26 @@ def watermark_sample_warmup(worker: Worker) -> None:
                     )
     except Exception:
         logger.warning("Skipping watermark sampler warmup.", exc_info=True)
+
+
+def _stateful_sample_warmup(sampler, model_config, device: torch.device) -> None:
+    """Sample dummy rows so torch.compile runs before inference. Batch size 1
+    compiles separately from larger ones; add_request resets the slots."""
+    from vllm.v1.watermarking.watermarker import RandomSampler
+
+    watermarker = sampler.watermarker
+    for num_reqs in sorted({1, min(2, watermarker.padding_row)}):
+        zeros = torch.zeros(num_reqs, dtype=torch.int64, device=device)
+        random_sampler = RandomSampler(
+            expanded_idx_mapping=torch.arange(num_reqs, device=device),
+            temperatures=torch.ones(num_reqs, device=device),
+            seeds=zeros,
+            positions=zeros,
+            use_fp64=sampler.use_fp64_gumbel,
+        )
+        for dtype in {cast("torch.dtype", model_config.dtype), torch.float32}:
+            logits = torch.zeros(
+                (num_reqs, model_config.get_vocab_size()), dtype=dtype, device=device
+            )
+            contexts = torch.full((num_reqs, 1), -1, device=device)
+            watermarker.sample(logits, contexts, random_sampler, zeros.bool())

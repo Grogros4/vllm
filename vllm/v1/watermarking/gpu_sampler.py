@@ -9,6 +9,7 @@ import torch
 from vllm.logger import init_logger
 from vllm.sampling_params import SamplingParams
 from vllm.v1.sample.ops.topk_topp_sampler import apply_top_k_top_p
+from vllm.v1.watermarking.concordmark import ConcordMarkWatermarker
 from vllm.v1.watermarking.watermarker import (
     RandomSampler,
     SupportsVerificationLogits,
@@ -22,6 +23,8 @@ logger = init_logger(__name__)
 
 
 class GPUWatermarkSampler(Sampler):
+    concordmark: ConcordMarkWatermarker | None = None
+
     def __init__(
         self,
         watermarker: Watermarker,
@@ -32,6 +35,8 @@ class GPUWatermarkSampler(Sampler):
     ) -> None:
         super().__init__(*args, **kwargs)
         self.watermarker = watermarker
+        if isinstance(watermarker, ConcordMarkWatermarker):
+            self.concordmark = watermarker
         # A context-free watermark, such as unigram, has no context to repeat.
         if watermarker.context_width == 0:
             deduplicate_contexts = "none"
@@ -43,9 +48,26 @@ class GPUWatermarkSampler(Sampler):
         self.watermarking.np.fill(True)
         self.watermarking.copy_to_uva()
 
+    @property
+    def stateful(self) -> bool:
+        return getattr(self.watermarker, "stateful", False)
+
     def add_request(self, req_idx: int, sampling_params: SamplingParams) -> None:
         super().add_request(req_idx, sampling_params)
         self.watermarking.np[req_idx] = sampling_params.watermarking
+        if self.stateful:
+            self.watermarker.add_request(req_idx)
+            resumed = (
+                self.req_states.prefill_len.np[req_idx]
+                > self.req_states.prompt_len.np[req_idx]
+            )
+            if resumed and self.watermarking.np[req_idx]:
+                # The per-request watermark state does not survive preemption.
+                self.watermarking.np[req_idx] = False
+                logger.warning_once(
+                    "A preempted request resumed; its remaining tokens are "
+                    "not watermarked."
+                )
         if sampling_params.watermarking and sampling_params.temperature == 0:
             logger.warning_once(
                 "Watermarking is enabled, but greedy decoding "
@@ -82,15 +104,27 @@ class GPUWatermarkSampler(Sampler):
             )
 
         processed_logits = apply_top_k_top_p(processed_logits, top_k, top_p)
-        contexts = self._get_contexts(expanded_idx_mapping)
         repeated_contexts = None
-        if self.deduplicate_contexts != "none":
-            repeated_contexts = self._get_repeated_contexts(
-                expanded_idx_mapping, contexts
+        if self.concordmark is not None:
+            # ConcordMark contexts never repeat; it skips rows without one.
+            contexts, repeated_contexts = self.concordmark.contexts_from_history(
+                self.req_states.all_token_ids.gpu,
+                expanded_idx_mapping,
+                self.req_states.prompt_len.gpu,
+                self.req_states.total_len.gpu,
+                self.sampling_states.seeds.gpu,
             )
+        else:
+            contexts = self._get_contexts(expanded_idx_mapping)
+            if self.deduplicate_contexts != "none":
+                repeated_contexts = self._get_repeated_contexts(
+                    expanded_idx_mapping, contexts
+                )
 
         temperatures = self.sampling_states.temperature.gpu[expanded_idx_mapping]
-        needs_mixed_sampling = repeated_contexts is not None or not np.all(enabled)
+        needs_mixed_sampling = (
+            repeated_contexts is not None or not np.all(enabled) or self.stateful
+        )
         skip_mask = None
         if needs_mixed_sampling:
             watermarking = self.watermarking.gpu[expanded_idx_mapping] & (
@@ -98,6 +132,10 @@ class GPUWatermarkSampler(Sampler):
             )
             if repeated_contexts is not None:
                 watermarking &= ~repeated_contexts
+            if self.stateful:
+                # Partial prefill chunks emit no token and must not update state.
+                prefill_lens = self.req_states.prefill_len.gpu[expanded_idx_mapping]
+                watermarking &= pos + 1 >= prefill_lens
             skip_mask = ~watermarking
 
         random_sampler = RandomSampler(

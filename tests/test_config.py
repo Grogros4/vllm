@@ -3736,7 +3736,8 @@ def test_gumbel_rejects_speculative_decoding_without_target_only():
 
 
 @pytest.mark.parametrize(
-    "algorithm", ["chi_squared", "ppl_hard", "ppl_soft", "synthid"]
+    "algorithm",
+    ["chi_squared", "ppl_hard", "ppl_soft", "synthid", "concordmark", "rotation_first"],
 )
 def test_watermarks_without_speculation_reject_target_only_speculative_decoding(
     algorithm,

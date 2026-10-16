@@ -7,10 +7,12 @@ from vllm import SamplingParams
 from vllm.platforms import current_platform
 from vllm.v1.watermarking import (
     BinomialScoreWatermarkDetector,
+    ConcordMarkWatermarkDetector,
     GaussianCopulaWatermarkDetector,
     GumbelWatermarkDetector,
     MultibitRedGreenWatermarkDetector,
     RedGreenWatermarkDetector,
+    RotationFirstWatermarkDetector,
     SynthIDWatermarkDetector,
     TextGrainWatermarkDetector,
     UnigramWatermarkDetector,
@@ -24,6 +26,16 @@ from vllm.v1.watermarking import (
     ("watermark_config", "detector_cls", "recorded_p_value"),
     [
         ({"key": 42, "context_width": 4}, GumbelWatermarkDetector, 9.83e-20),
+        (
+            {"algorithm": "concordmark", "key": 42},
+            ConcordMarkWatermarkDetector,
+            1.89e-10,
+        ),
+        (
+            {"algorithm": "rotation_first", "key": 42},
+            RotationFirstWatermarkDetector,
+            4.55e-5,
+        ),
         (
             {"algorithm": "red_green", "key": 42, "context_width": 4},
             RedGreenWatermarkDetector,
@@ -74,6 +86,8 @@ from vllm.v1.watermarking import (
     ],
     ids=[
         "gumbel",
+        "concordmark",
+        "rotation_first",
         "red_green",
         "unigram",
         "multibit_red_green",
@@ -86,17 +100,13 @@ from vllm.v1.watermarking import (
     ],
 )
 def test_llm_generated_sequence_is_watermarked(
-    vllm_runner, watermark_config, detector_cls, recorded_p_value
+    vllm_runner, watermark_config, detector_cls, recorded_p_value, monkeypatch
 ):
     """Engine-level watermarking must produce tokens the detector recognizes."""
-    detector = detector_cls(
-        **{
-            name: value
-            for name, value in watermark_config.items()
-            if name in ("key", "context_width")
-        }
-    )
-
+    if detector_cls is RotationFirstWatermarkDetector:
+        # A prior detector can initialize Torch's CPU thread pool; forking it
+        # can deadlock the tokenizer-class tensor operations in the worker.
+        monkeypatch.setenv("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
     runner = vllm_runner(
         "facebook/opt-125m",
         watermark_config=watermark_config,
@@ -106,12 +116,24 @@ def test_llm_generated_sequence_is_watermarked(
         gpu_memory_utilization=0.2,
     )
     request = "Tell me a story about an explorer who discovers a mysterious island."
-    params_use_wm = SamplingParams(temperature=1.0, max_tokens=256, watermarking=True)
-    params_no_wm = SamplingParams(temperature=1.0, max_tokens=256, watermarking=False)
+    params_use_wm = SamplingParams(
+        temperature=1.0, top_p=1.0, max_tokens=256, watermarking=True
+    )
+    params_no_wm = SamplingParams(
+        temperature=1.0, top_p=1.0, max_tokens=256, watermarking=False
+    )
 
     with runner:
         output_use_wm = runner.llm.generate(request, params_use_wm)
         output_no_wm = runner.llm.generate(request, params_no_wm)
+        detector_kwargs = {
+            name: value
+            for name, value in watermark_config.items()
+            if name in ("key", "context_width")
+        }
+        if detector_cls is RotationFirstWatermarkDetector:
+            detector_kwargs["tokenizer"] = runner.llm.get_tokenizer()
+        detector = detector_cls(**detector_kwargs)
 
     result_use_wm = detector.detect(list(output_use_wm[0].outputs[0].token_ids))
     result_no_wm = detector.detect(list(output_no_wm[0].outputs[0].token_ids))

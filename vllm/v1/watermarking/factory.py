@@ -1,10 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+import torch
 
 from vllm.config.watermarking import WatermarkConfig
 from vllm.v1.watermarking.chi_squared import ChiSquaredWatermarker
+from vllm.v1.watermarking.concordmark import ConcordMarkWatermarker
 from vllm.v1.watermarking.gaussian_copula import GaussianCopulaWatermarker
 from vllm.v1.watermarking.gumbel import (
     DualKeyGumbelWatermarker,
@@ -14,12 +17,21 @@ from vllm.v1.watermarking.lookahead import LookaheadGumbelWatermarker
 from vllm.v1.watermarking.multibit_red_green import MultibitRedGreenWatermarker
 from vllm.v1.watermarking.perplexity import PPLHardWatermarker, PPLSoftWatermarker
 from vllm.v1.watermarking.red_green import RedGreenWatermarker, UnigramWatermarker
+from vllm.v1.watermarking.rotation_first import RotationFirstWatermarker
 from vllm.v1.watermarking.synthid import SynthIDWatermarker
 from vllm.v1.watermarking.textgrain import TextGrainWatermarker
 from vllm.v1.watermarking.watermarker import Watermarker
 
+if TYPE_CHECKING:
+    from vllm.config import ModelConfig
 
-def create_watermarker(config: WatermarkConfig) -> Watermarker:
+
+def create_watermarker(
+    config: WatermarkConfig,
+    model_config: "ModelConfig | None" = None,
+    max_num_reqs: int | None = None,
+    device: torch.device | None = None,
+) -> Watermarker:
     if config.algorithm == "gumbel":
         return GumbelWatermarker(config.key, config.context_width, config.prf)
     if config.algorithm == "dual_key_gumbel":
@@ -98,5 +110,34 @@ def create_watermarker(config: WatermarkConfig) -> Watermarker:
             config.context_width,
             config.prf,
             config.correlation,
+        )
+    if config.algorithm == "rotation_first":
+        from vllm.tokenizers import cached_tokenizer_from_config
+
+        if model_config is None or max_num_reqs is None or device is None:
+            raise ValueError(
+                "rotation_first watermarking requires the model config, "
+                "max_num_reqs and device"
+            )
+        tokenizer = cached_tokenizer_from_config(model_config)
+        if tokenizer is None:
+            raise ValueError(
+                "rotation_first watermarking requires a tokenizer and does not "
+                "support skip_tokenizer_init"
+            )
+        return RotationFirstWatermarker(
+            config.key,
+            tokenizer,
+            model_config.get_vocab_size(),
+            max_num_reqs,
+            device,
+            config.prf,
+        )
+    if config.algorithm == "concordmark":
+        return ConcordMarkWatermarker(
+            config.key,
+            config.context_width,
+            config.prf,
+            config.deduplicate_contexts_max_history,
         )
     raise ValueError(f"Unknown watermarking algorithm: {config.algorithm}")
