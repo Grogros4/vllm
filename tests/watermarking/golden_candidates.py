@@ -21,11 +21,15 @@ from vllm.config.watermarking import (
 )
 from vllm.v1.watermarking import (
     BinomialScoreWatermarkDetector,
+    ConcordMarkWatermarkDetector,
+    ConcordMarkWatermarker,
     DualKeyGumbelWatermarkDetector,
     GaussianCopulaWatermarkDetector,
     GumbelWatermarkDetector,
     MultibitRedGreenWatermarkDetector,
     RedGreenWatermarkDetector,
+    RotationFirstWatermarkDetector,
+    RotationFirstWatermarker,
     SynthIDWatermarkDetector,
     TextGrainWatermarkDetector,
     UnigramWatermarkDetector,
@@ -143,6 +147,10 @@ class GenerationTrace:
 
 
 class _DeterministicSampler:
+    expanded_idx_mapping = torch.tensor([0])
+    seeds = torch.tensor([0])
+    positions = torch.tensor([0])
+
     def __init__(self, routing_uniforms: tuple[float, ...]) -> None:
         self.routing_uniforms = routing_uniforms
         self.routing_position = 0
@@ -298,7 +306,55 @@ def _create_unigram_detector(
     )
 
 
+class ToyTokenizer:
+    """Pairs (2k, 2k + 1) decode to one word, in lower and upper case, unless
+    k % 3 == 0; other tokens decode to digits."""
+
+    def __init__(self, vocab_size: int = 1024) -> None:
+        self.vocab_size = vocab_size
+
+    def __len__(self) -> int:
+        return self.vocab_size
+
+    def decode(self, token_ids: list[int]) -> str:
+        (token_id,) = token_ids
+        word_id = token_id // 2
+        if word_id % 3 == 0:
+            return str(token_id)
+        word = "".join(chr(97 + word_id // 26**i % 26) for i in range(3))
+        return word if token_id % 2 == 0 else " " + word.upper()
+
+
+def _create_rotation_first_detector(
+    key: int,
+    config: WatermarkingSchemeConfig,
+    prf: WatermarkPRFName,
+) -> WatermarkDetector:
+    return RotationFirstWatermarkDetector(
+        key=key,
+        tokenizer=ToyTokenizer(),
+        p_value_threshold=config.p_value_threshold,
+        prf=prf,
+    )
+
+
+def _create_concordmark_detector(
+    key: int,
+    config: WatermarkingSchemeConfig,
+    prf: WatermarkPRFName,
+) -> WatermarkDetector:
+    return ConcordMarkWatermarkDetector(
+        key=key,
+        context_width=config.context_width,
+        p_value_threshold=config.p_value_threshold,
+        prf=prf,
+        max_history=config.generation_deduplicate_contexts_max_history,
+    )
+
+
 DETECTOR_FACTORIES = {
+    "rotation_first": _create_rotation_first_detector,
+    "concordmark": _create_concordmark_detector,
     "gumbel": _create_gumbel_detector,
     "dual_key_gumbel": _create_dual_key_gumbel_detector,
     "red_green": _create_red_green_detector,
@@ -420,7 +476,18 @@ class WatermarkingCandidate:
         return self.generate_with_trace()[0]
 
     def generate_with_trace(self) -> tuple[list[int], GenerationTrace]:
-        watermarker = create_watermarker(self._watermark_config())
+        if self.scheme == "rotation_first":
+            vocab_size = self.fixture.vocabulary_size
+            watermarker = RotationFirstWatermarker(
+                self.key,
+                ToyTokenizer(vocab_size),
+                vocab_size,
+                max_num_reqs=1,
+                device=torch.device("cpu"),
+                prf=self.prf,
+            )
+        else:
+            watermarker = create_watermarker(self._watermark_config())
         sampler = _DeterministicSampler(self.fixture.routing_uniforms)
         generated: list[int] = []
         dedup_skips = 0
@@ -428,13 +495,23 @@ class WatermarkingCandidate:
         key_b_effective = 0
 
         for position in range(self.fixture.num_tokens):
-            context = self._context(generated, watermarker.context_width)
-            skip_mask = self._skip_mask(generated, context)
+            if isinstance(watermarker, ConcordMarkWatermarker):
+                context, skip_mask = watermarker.contexts_from_history(
+                    torch.tensor([list(self.fixture.prompt) + generated]),
+                    torch.tensor([0]),
+                    torch.tensor([len(self.fixture.prompt)]),
+                    torch.tensor([len(self.fixture.prompt) + len(generated)]),
+                    torch.tensor([0]),
+                )
+            else:
+                context = self._context(generated, watermarker.context_width)
+                skip_mask = self._skip_mask(generated, context)
             skipped = skip_mask is not None and bool(skip_mask.item())
-            if skipped:
+            if skipped and not isinstance(watermarker, ConcordMarkWatermarker):
                 dedup_skips += 1
                 if len(generated) < self.scheme_config.context_width:
                     partial_context_skips += 1
+            sampler.positions = torch.tensor([position])
             routed_before = sampler.key_b_routed
             sample = watermarker.sample(
                 self.fixture.logits(position),
@@ -968,6 +1045,46 @@ WATERMARKING_CANDIDATES = (
         7,
         prf="philox",
         correlation=0.5,
+    ),
+)
+
+WIDE_FIXTURE = DeterministicGenerationFixture(
+    vocabulary_size=512,
+    logit_modulus=521,
+    logit_denominator=256,
+)
+
+ROTATION_FIRST_CANDIDATES = (
+    _candidate(
+        "rotation-first-philox-key42",
+        "rotation_first",
+        42,
+        prf="philox",
+        context_width=1,
+        generation_deduplicate_contexts="none",
+        detection_deduplicate_contexts=False,
+    ),
+    _candidate(
+        "rotation-first-philox-key7-wide",
+        "rotation_first",
+        7,
+        prf="philox",
+        context_width=1,
+        generation_deduplicate_contexts="none",
+        detection_deduplicate_contexts=False,
+        fixture=WIDE_FIXTURE,
+    ),
+)
+WATERMARKING_CANDIDATES += ROTATION_FIRST_CANDIDATES
+
+WATERMARKING_CANDIDATES += (
+    _candidate("concordmark-philox-key42-cw4", "concordmark", 42, prf="philox"),
+    _candidate(
+        "concordmark-philox-key42-cw4-wrong-key",
+        "concordmark",
+        42,
+        prf="philox",
+        detection_key=43,
     ),
 )
 

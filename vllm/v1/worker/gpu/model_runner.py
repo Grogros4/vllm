@@ -474,7 +474,9 @@ class GPUModelRunner(LoRAModelRunnerMixin):
                 self.sampler = Sampler(**sampler_kwargs)
             else:
                 wm_config = self.vllm_config.watermark_config
-                watermarker = create_watermarker(wm_config)
+                watermarker = create_watermarker(
+                    wm_config, self.model_config, self.max_num_reqs, self.device
+                )
                 if self.speculative_config is not None:
                     watermarker = create_speculative_target_watermarker(watermarker)
                 self.sampler = GPUWatermarkSampler(

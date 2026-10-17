@@ -1,12 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
+import math
+from dataclasses import dataclass
 from types import SimpleNamespace
 
 import numpy as np
 import pytest
 import torch
 
+from tests.watermarking.golden_candidates import ToyTokenizer
 from vllm import SamplingParams
 from vllm import logger as vllm_logger
 from vllm.config import VllmConfig
@@ -14,13 +17,25 @@ from vllm.config.watermarking import WatermarkConfig
 from vllm.platforms import current_platform
 from vllm.v1.sample.ops.topk_topp_sampler import apply_top_k_top_p_pytorch
 from vllm.v1.watermarking import (
+    ConcordMarkWatermarkDetector,
+    ConcordMarkWatermarker,
     DualKeyGumbelWatermarker,
+    PhiloxPRF,
+    RotationFirstWatermarkDetector,
+    RotationFirstWatermarker,
     SupportsSpeculativeDecoding,
     create_watermarker,
     derive_watermark_key,
 )
+from vllm.v1.watermarking.concordmark import _weighted_tail
 from vllm.v1.watermarking.gpu_sampler import GPUWatermarkSampler
 from vllm.v1.watermarking.gumbel import GumbelWatermarker
+from vllm.v1.watermarking.rotation_first import (
+    _PIVOT_ERROR,
+    _keyed_quaternions,
+    _predictive_scores,
+    lexical_token_classes,
+)
 from vllm.v1.watermarking.spec_decode import (
     DraftWatermarker,
     _resolve_watermark_key,
@@ -73,7 +88,10 @@ def make_gpu_watermark_sampler(monkeypatch):
                 np=np.zeros(max_num_reqs, dtype=np.int32),
                 gpu=torch.zeros(max_num_reqs, dtype=torch.int32),
             ),
-            prefill_len=SimpleNamespace(np=np.zeros(max_num_reqs, dtype=np.int32)),
+            prefill_len=SimpleNamespace(
+                np=np.zeros(max_num_reqs, dtype=np.int32),
+                gpu=torch.zeros(max_num_reqs, dtype=torch.int32),
+            ),
             total_len=SimpleNamespace(gpu=torch.zeros(max_num_reqs, dtype=torch.int32)),
         )
         return GPUWatermarkSampler(
@@ -1804,3 +1822,373 @@ def test_dspark_target_only_watermarking_leaves_drafts_unwatermarked(monkeypatch
     )
 
     assert torch.equal(sampled, torch.tensor([3, 4]))
+
+
+ROTATION_FIRST_VOCAB_SIZE = 600
+
+
+ROTATION_FIRST_OOV_TOKEN = 5000
+
+
+@dataclass
+class RotationFirstArgmaxSampler:
+    """Stands in for RandomSampler: argmax with the per-row request state."""
+
+    expanded_idx_mapping: torch.Tensor
+    seeds: torch.Tensor
+    positions: torch.Tensor
+
+    def __call__(self, logits: torch.Tensor) -> torch.Tensor:
+        return logits.argmax(dim=-1)
+
+
+def _rotation_first_watermarker(device: str = "cpu") -> RotationFirstWatermarker:
+    return RotationFirstWatermarker(
+        42,
+        ToyTokenizer(ROTATION_FIRST_VOCAB_SIZE),
+        ROTATION_FIRST_VOCAB_SIZE,
+        4,
+        torch.device(device),
+    )
+
+
+def _generate_rotation_first(
+    watermarker: RotationFirstWatermarker,
+    device: str = "cpu",
+    num_tokens: int = 48,
+    logit_scale: float = 2.0,
+):
+    """Generate for slots 0 and 2, a padding row and a skipped row every few
+    steps; return tokens and the addresses keyed by the generator, read from
+    its state before each step."""
+    rows = torch.tensor([0, -1, 2], device=device)
+    seeds = torch.tensor([11, -5, 2**40, 3], device=device)
+    generator = torch.Generator().manual_seed(0)
+    tokens: list[list[int]] = [[], [], []]
+    addresses: list[list[tuple[int, int]]] = [[], [], []]
+    classes, eligible = lexical_token_classes(ToyTokenizer(ROTATION_FIRST_VOCAB_SIZE))
+    for step in range(num_tokens):
+        logits = logit_scale * torch.randn(
+            3, ROTATION_FIRST_VOCAB_SIZE, generator=generator
+        )
+        contexts = torch.tensor([[t[-1] if t else -1] for t in tokens], device=device)
+        skip = torch.tensor([False, False, step % 5 == 4], device=device)
+        seen = watermarker.seen[rows.clamp_min(0)].cpu()
+        fresh = watermarker.fresh_context[rows.clamp_min(0)].cpu()
+        sampler = RotationFirstArgmaxSampler(
+            rows, seeds, torch.full_like(rows, 100 + step)
+        )
+        sampled = watermarker.sample(logits.to(device), contexts, sampler, skip)
+        for i, token in enumerate(sampled.token_ids.tolist()):
+            if skip[i] or rows[i] < 0:
+                continue
+            token_class = int(classes[token])
+            arrived = (int(seen[i, token_class // 32]) >> (token_class % 32)) & 1
+            if eligible[token] and not arrived:
+                addresses[i].append((0, token_class))
+            elif fresh[i] and tokens[i]:
+                addresses[i].append((int(classes[tokens[i][-1]]) + 1, token_class))
+            tokens[i].append(token)
+    return [tokens[0], tokens[2]], [addresses[0], addresses[2]]
+
+
+def test_rotation_first_lexical_token_classes_group_case_and_space_variants():
+    class Tokenizer:
+        tokens = ["the", " The", "THE", "a", " cat", "cat\n", "12", "ing", "dog!"]
+
+        def __len__(self) -> int:
+            return len(self.tokens)
+
+        def decode(self, token_ids: list[int]) -> str:
+            return self.tokens[token_ids[0]]
+
+    classes, eligible = lexical_token_classes(Tokenizer(), vocab_size=11)
+
+    assert classes.tolist() == [0, 0, 0, 3, 4, 4, 6, 7, 8, 9, 10]
+    assert eligible.nonzero().flatten().tolist() == [0, 1, 2, 4, 5, 7]
+
+
+def test_rotation_first_detector_scores_the_addresses_generation_keyed():
+    watermarker = _rotation_first_watermarker()
+    tokens, addresses = _generate_rotation_first(watermarker)
+    detector = RotationFirstWatermarkDetector(
+        42, ToyTokenizer(ROTATION_FIRST_VOCAB_SIZE)
+    )
+    wrong_key = RotationFirstWatermarkDetector(
+        43, ToyTokenizer(ROTATION_FIRST_VOCAB_SIZE)
+    )
+    classes, _ = lexical_token_classes(ToyTokenizer(ROTATION_FIRST_VOCAB_SIZE))
+
+    for slot, request_tokens, request_addresses in zip((0, 2), tokens, addresses):
+        # An out-of-vocabulary token is an ineligible singleton class.
+        if watermarker.fresh_context[slot]:
+            last_class = int(classes[request_tokens[-1]])
+            request_addresses.append((last_class + 1, ROTATION_FIRST_OOV_TOKEN))
+        request_tokens.append(ROTATION_FIRST_OOV_TOKEN)
+        contexts, targets = detector._prepare_inputs(request_tokens)
+
+        assert list(zip(contexts[:, 0].tolist(), targets.tolist())) == (
+            request_addresses
+        )
+        assert detector.detect(request_tokens).is_watermarked
+        assert not wrong_key.detect(request_tokens).is_watermarked
+
+
+def _rotation_first_reference_scores(quaternions: np.ndarray) -> np.ndarray:
+    """Sequential loop form of the forecast test with independent frames."""
+    qmc = pytest.importorskip("scipy.stats.qmc")
+    u = (qmc.Sobol(3, scramble=False).random_base2(9) + 1 / 1024) % 1
+    a, b = 2 * np.pi * u[:, 1], 2 * np.pi * u[:, 2]
+    r, s = np.sqrt(u[:, 0]), np.sqrt(1 - u[:, 0])
+    frames = np.stack((r * np.cos(a), r * np.sin(a), s * np.cos(b), s * np.sin(b)), 1)
+
+    def pivot(dot: float) -> float:
+        dot = min(1.0, abs(dot))
+        tail = (2 / math.pi) * (math.acos(dot) - dot * math.sqrt(1 - dot * dot))
+        return min(1.0, max(0.0, tail) + _PIVOT_ERROR)
+
+    log_weights = np.zeros(len(frames))
+    direction = frames[0]
+    scores = []
+    for z in quaternions:
+        scores.append(-math.log(pivot(direction @ z)))
+        log_weights -= 0.5 * np.log([pivot(frame @ z) for frame in frames])
+        weights = np.exp(log_weights - log_weights.max())
+        direction = np.linalg.eigh((frames * weights[:, None]).T @ frames)[1][:, -1]
+    return np.array(scores)
+
+
+def test_rotation_first_predictive_scores_match_a_sequential_reference():
+    contexts = torch.tensor([0, 0, 5, 9, 9, 0, 12, 3])
+    prf = RotationFirstWatermarkDetector(42, ToyTokenizer(4)).prf
+    quaternions = _keyed_quaternions(prf, contexts, torch.arange(len(contexts)) * 7)
+
+    np.testing.assert_allclose(
+        _predictive_scores(quaternions).numpy(),
+        _rotation_first_reference_scores(quaternions.numpy()),
+        rtol=1e-9,
+    )
+
+
+def test_rotation_first_generation_is_deterministic_after_add_request():
+    watermarker = _rotation_first_watermarker()
+    first, _ = _generate_rotation_first(watermarker, num_tokens=8)
+    for slot in (0, 2):
+        watermarker.add_request(slot)
+
+    assert _generate_rotation_first(watermarker, num_tokens=8)[0] == first
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires CUDA")
+def test_rotation_first_cuda_generation_matches_cpu():
+    """Well-separated logits keep CPU and CUDA rounding from changing a token."""
+    cpu = _rotation_first_watermarker()
+    cuda = _rotation_first_watermarker("cuda")
+    cpu_tokens, _ = _generate_rotation_first(cpu, num_tokens=16, logit_scale=20.0)
+    cuda_tokens, _ = _generate_rotation_first(
+        cuda, "cuda", num_tokens=16, logit_scale=20.0
+    )
+
+    assert cuda_tokens == cpu_tokens
+    for slot in (0, 2):
+        assert torch.equal(cuda.seen[slot].cpu(), cpu.seen[slot])
+        assert cuda.fresh_context[slot].item() == cpu.fresh_context[slot].item()
+        torch.testing.assert_close(cuda.hazard[slot].cpu(), cpu.hazard[slot])
+
+
+CONCORDMARK_KEY = 42
+
+
+def _concordmark_sidak(p_value: float) -> float:
+    return 1 - (1 - p_value) ** 6
+
+
+def _generate_concordmark(max_history: int | None, num_tokens: int = 96):
+    """Generate on CPU with the sampler's contexts; return tokens and contexts."""
+    watermarker = ConcordMarkWatermarker(CONCORDMARK_KEY, max_history=max_history)
+    logits = 3 * torch.randn(
+        num_tokens, 512, generator=torch.Generator().manual_seed(0)
+    )
+    prompt = [5, 6, 7]
+    storage = torch.tensor([prompt + [0] * num_tokens])
+    contexts = []
+    for position in range(num_tokens):
+        context, skip_mask = watermarker.contexts_from_history(
+            storage,
+            torch.tensor([0]),
+            torch.tensor([len(prompt)]),
+            torch.tensor([len(prompt) + position]),
+            torch.tensor([1234]),
+        )
+        assert skip_mask.item() == (position == 0)
+        sample = watermarker.sample(
+            logits[position : position + 1], context, _argmax_sampler, skip_mask
+        )
+        storage[0, len(prompt) + position] = sample.token_ids.item()
+        contexts.append(context[0])
+    return storage[0, len(prompt) :].tolist(), torch.stack(contexts)
+
+
+@pytest.mark.skipif(not current_platform.is_cuda(), reason="requires CUDA")
+@pytest.mark.parametrize("max_width, max_history", [(1, None), (4, None), (5, 50)])
+def test_concordmark_context_kernel_matches_cpu_reference(max_width, max_history):
+    watermarker = ConcordMarkWatermarker(
+        CONCORDMARK_KEY, max_width, max_history=max_history
+    )
+    generator = torch.Generator().manual_seed(max_width)
+    # Few distinct tokens, so windows repeat and the ladder climbs; 303 is
+    # above the common-token floor.
+    all_token_ids = torch.randint(0, 4, (6, 700), generator=generator).int()
+    all_token_ids += 300 * (all_token_ids == 3).int()
+    prompt_lens = torch.tensor([0, 5, 9, 2, 0, 300], dtype=torch.int32)
+    total_lens = torch.tensor([0, 6, 700, 3, 517, 690], dtype=torch.int32)
+    seeds = torch.tensor([-(2**63), -1, 0, 1, 2**40 + 3, 2**63 - 1])
+    req_indices = torch.tensor([5, -1, 0, 1, 2, 3, 4], dtype=torch.int32)
+    args = (all_token_ids, req_indices, prompt_lens, total_lens, seeds)
+
+    expected, expected_skip = watermarker.contexts_from_history(*args)
+    contexts, skip = watermarker.contexts_from_history(*(arg.cuda() for arg in args))
+
+    valid = req_indices >= 0
+    assert torch.equal(skip.cpu(), expected_skip)
+    assert torch.equal(contexts.cpu()[valid], expected[valid])
+
+
+@pytest.mark.parametrize("max_history", [None, 16])
+def test_concordmark_generation_contexts_match_detector_trials(max_history):
+    token_ids, generation_contexts = _generate_concordmark(max_history)
+    detector = ConcordMarkWatermarkDetector(CONCORDMARK_KEY, max_history=max_history)
+    contexts, targets, positions = detector._trials(token_ids)
+
+    # Every token after the first is scored once per voice, unless its context
+    # repeats, which only happens beyond the tally window.
+    distinct = {tuple(row) for row in generation_contexts[1:].tolist()}
+    assert positions == sorted(positions)
+    assert len(positions) == len(distinct)
+    assert (len(distinct) == len(token_ids) - 1) == (max_history is None)
+    assert torch.equal(targets[:, 0], torch.tensor(token_ids)[positions])
+    assert torch.equal(contexts[:, :, 2], torch.arange(6).expand(len(targets), 6))
+    voice = generation_contexts[1, 2].item()
+    assert torch.equal(contexts[:, voice], generation_contexts[positions])
+
+
+def test_concordmark_low_p_value_matches_reference():
+    token_ids, generation_contexts = _generate_concordmark(max_history=None)
+    num_trials = len(token_ids) - 1
+    scores = []
+    for voice in range(6):
+        contexts = generation_contexts[1:].clone()
+        contexts[:, 2] = voice
+        targets = torch.tensor(token_ids[1:]).unsqueeze(-1)
+        uniforms = PhiloxPRF(CONCORDMARK_KEY).uniform(contexts, targets).double()
+        scores.append((-torch.log1p(-uniforms) - math.log(2)).clamp_min(0).sum())
+    score = max(scores).item()
+    # Each excess is 0 or Exp(1) with probability 1/2.
+    tail = sum(
+        math.comb(num_trials, count)
+        / 2**num_trials
+        * math.exp(-score)
+        * sum(score**k / math.factorial(k) for k in range(count))
+        for count in range(1, num_trials + 1)
+    )
+
+    result = ConcordMarkWatermarkDetector(CONCORDMARK_KEY).detect(token_ids)
+
+    assert result.score == pytest.approx(score)
+    assert result.p_value == pytest.approx(_concordmark_sidak(tail), rel=1e-6)
+    assert result.is_watermarked
+    assert (
+        not ConcordMarkWatermarkDetector(CONCORDMARK_KEY + 1)
+        .detect(token_ids)
+        .is_watermarked
+    )
+
+
+def test_concordmark_high_score_prices_the_race_against_competitors():
+    token_ids = [300, 301]
+    # Surprisal 1 gives weight 2; competitor 302 is e^0.5 times likelier.
+    exponent = math.exp(0.5)
+    logprobs = [None, (-1.0, {301: -1.0, 302: -0.5})]
+    scores = []
+    for voice in range(6):
+        context = torch.tensor([[1, 0, voice, -1, -1, -1, 300]])
+        u, u_competitor = (
+            PhiloxPRF(CONCORDMARK_KEY)
+            .uniform(context, torch.tensor([[301, 302]]))[0]
+            .tolist()
+        )
+        race = u ** (1 + exponent) / (1 + exponent)
+        below = u_competitor < u**exponent
+        q = 1 / (1 + exponent) - race if below else 1 - u + race
+        scores.append(-2 * math.log(q))
+
+    result = ConcordMarkWatermarkDetector(CONCORDMARK_KEY).detect(token_ids, logprobs)
+
+    assert result.score == pytest.approx(max(scores))
+    # One weight level: the null is 2 * Exp(1).
+    assert result.p_value == pytest.approx(
+        min(1.0, 1.02 * _concordmark_sidak(math.exp(-max(scores) / 2)))
+    )
+
+
+@pytest.mark.parametrize("total", [3.0, 8.0, 15.0, 30.0])
+def test_concordmark_weighted_tail_matches_the_hypoexponential_tail(total: float):
+    hist = torch.zeros(11, dtype=torch.int64)
+    hist[[0, 2, 5]] = 1
+    weights = [1.0, 1.5, 2.25]
+    expected = sum(
+        math.exp(-total / weight)
+        * math.prod(weight / (weight - other) for other in weights if other != weight)
+        for weight in weights
+    )
+
+    assert _weighted_tail(total, hist) == pytest.approx(expected, rel=0.03)
+
+
+class StatefulStubWatermarker(StubWatermarker):
+    stateful = True
+
+    def __init__(self):
+        self.added: list[int] = []
+        self.skip_mask = None
+
+    def add_request(self, req_idx):
+        self.added.append(req_idx)
+
+    def sample(self, logits, contexts, random_sampler=None, skip_mask=None):
+        self.skip_mask = skip_mask
+        return WatermarkSample(logits.argmax(dim=-1), logits)
+
+
+def test_gpu_sampler_drives_stateful_watermarker(make_gpu_watermark_sampler):
+    """Slots are reset on add, resumed requests opt out, and partial prefill
+    rows, whose samples are discarded, never reach the state."""
+    watermarker = StatefulStubWatermarker()
+    sampler = make_gpu_watermark_sampler(
+        watermarker, max_num_reqs=3, deduplicate_contexts="none"
+    )
+    req_states = sampler.req_states
+    req_states.prompt_len.np[:] = [10, 3, 3]
+    req_states.prefill_len.np[:] = [10, 5, 3]
+    for req_idx in range(3):
+        sampler.add_request(req_idx, SamplingParams(watermarking=True))
+    sampler.apply_staged_writes()
+    req_states.prefill_len.gpu[:] = torch.tensor([10, 5, 3])
+    sampler._get_contexts = lambda expanded_idx_mapping: torch.zeros(
+        3, 1, dtype=torch.int64
+    )
+
+    sampler._sample_random(
+        torch.zeros(3, 8),
+        torch.tensor([0, 1, 2]),
+        np.array([0, 1, 2]),
+        torch.tensor([3, 9, 7]),
+        None,
+        None,
+        False,
+    )
+
+    assert watermarker.added == [0, 1, 2]
+    assert sampler.watermarking.np.tolist() == [True, False, True]
+    assert watermarker.skip_mask is not None
+    assert watermarker.skip_mask.tolist() == [True, True, False]

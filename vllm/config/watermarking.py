@@ -25,6 +25,8 @@ WatermarkingAlgorithm = Literal[
     "synthid",
     "textgrain",
     "gaussian_copula",
+    "rotation_first",
+    "concordmark",
 ]
 LookaheadAggregator = Literal["pi1", "pi2", "max", "tsum", "min", "lin", "expsum"]
 WatermarkPRFName = Literal["philox"]
@@ -92,18 +94,22 @@ class WatermarkConfig:
     """Number of keyed columns textGrain couples the blocks to."""
     context_width: int = Field(default=4, ge=1)
     """Number of prior tokens used by the watermark PRF. Ignored by `unigram`,
-    whose green list takes no context."""
+    whose green list takes no context, and by `rotation_first`, which keys
+    clocks by the previous token class. For `concordmark`, the widest window of
+    its context ladder."""
     deduplicate_contexts: WatermarkContextScope = "single_turn"
     """Which history is searched for a repeated context before a token is
     sampled; a repeated context is sampled without the watermark. `none`
     disables the search. `single_turn` (default) searches this request's
     generated tokens. `all` also searches the prompt and samples the first
-    `context_width` generated tokens without watermarking."""
+    `context_width` generated tokens without watermarking. Always `none` for
+    `rotation_first`. Ignored by `concordmark`, which builds its own contexts."""
     deduplicate_contexts_max_history: int | None = Field(default=8192, ge=1)
     """Number of most recent history positions searched (default 8192), or
     `None` for the whole scope. Each position is compared over the
     `context_width` tokens before it. Ignored when `deduplicate_contexts` is
-    `none`."""
+    `none`, except by `concordmark`, which counts window occurrences over this
+    many positions."""
     prf: WatermarkPRFName = "philox"
     """Pseudorandom function used by the watermarking algorithm."""
     allow_target_only_watermarking: bool = False
@@ -120,6 +126,9 @@ class WatermarkConfig:
             raise ValueError("philox keys must fit in 64 bits")
         if self.message >= 2**self.message_bits:
             raise ValueError("message must fit in message_bits bits")
+        if self.algorithm == "rotation_first":
+            self.deduplicate_contexts = "none"
+            return self
         history_is_too_short = (
             self.deduplicate_contexts_max_history is not None
             and self.deduplicate_contexts_max_history < _MIN_RECOMMENDED_DEDUP_HISTORY
