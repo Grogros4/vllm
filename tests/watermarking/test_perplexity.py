@@ -247,20 +247,30 @@ def test_soft_ppl_selects_the_best_score_plus_scaled_log_probability():
     assert sample.logits is logits
 
 
-def test_soft_ppl_selects_among_the_ranked_tokens():
-    """Only the 4096 most probable tokens can be selected, as only they are
-    drawn. Here half of the tokens are barely less probable; for such a flat
-    distribution beta is about 0, so without the cap the highest score would
-    often be among them."""
-    logits = torch.zeros(16, 8192)
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_soft_ppl_can_select_beyond_rank_4096(device: str):
+    """A flat distribution exposes an internal cap that would delete its tail."""
+    if device == "cuda" and not current_platform.is_cuda_alike():
+        pytest.skip("requires a CUDA-like accelerator")
+    logits = torch.zeros(16, 8192, device=device)
     logits[:, 4096:] = -1e-3
+    logits[:, -1] = -math.inf
     contexts = torch.randint(
         0, 8192, (16, 2), generator=torch.Generator().manual_seed(3)
+    ).to(device)
+
+    watermarker = PPLSoftWatermarker(key=42, context_width=2)
+    sample = watermarker.sample(logits, contexts)
+
+    assert (sample.token_ids >= 4096).any()
+    assert (sample.token_ids != 8191).all()
+    beta = watermarker.find_beta_for_logp_constraint(logits.log_softmax(-1), contexts)
+    keys = watermarker.scores(contexts, 8192) + beta.unsqueeze(-1) * torch.log(
+        logits.softmax(-1).clamp_min(1e-12)
     )
-
-    sample = PPLSoftWatermarker(key=42, context_width=2).sample(logits, contexts)
-
-    assert (sample.token_ids < 4096).all()
+    keys = keys.masked_fill(logits.isneginf(), -math.inf)
+    selected = keys.gather(1, sample.token_ids.unsqueeze(-1)).squeeze(-1)
+    torch.testing.assert_close(selected, keys.amax(dim=-1), rtol=1e-5, atol=1e-4)
 
 
 @pytest.mark.skipif(
@@ -349,14 +359,12 @@ def test_soft_ppl_kernels_match_reference(vocab_size: int):
     assert torch.equal(sample.token_ids[skipped], random_sampler(logits)[skipped])
     # Rounding may break a near tie differently, so compare keys, not tokens.
     log_probs = logits.log_softmax(dim=-1)
-    ranked = log_probs.topk(min(vocab_size, 4096), dim=-1).values
+    ranked = log_probs.sort(dim=-1, descending=True).values
     beta = watermarker.find_beta_for_logp_constraint(log_probs, contexts, ranked=ranked)
     keys = watermarker.scores(contexts, vocab_size) + beta.unsqueeze(-1) * torch.log(
         log_probs.exp().clamp_min(1e-12)
     )
-    keys = keys.masked_fill(
-        log_probs.isneginf() | (log_probs < ranked[:, -1:]), -math.inf
-    )
+    keys = keys.masked_fill(log_probs.isneginf(), -math.inf)
     selected = keys.gather(1, sample.token_ids.unsqueeze(-1)).squeeze(-1)
     torch.testing.assert_close(
         selected[~skipped], keys.amax(dim=-1)[~skipped], rtol=1e-5, atol=1e-4

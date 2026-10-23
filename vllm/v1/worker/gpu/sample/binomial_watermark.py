@@ -1194,8 +1194,8 @@ def philox_ppl_soft_sample(
     vocabulary and ``monte_carlo_bisection``, whose arguments ``n_mc``,
     ``level_probs``, ``eps``, ``beta_max`` and ``max_iter`` are passed on, with
     ``monte_carlo_key`` as its ``key``.
-    ``ranked_logits`` holds each row's ``min(vocab_size, 4096)`` largest logits
-    in decreasing order. Rows in ``skip_mask`` get the token ``gumbel_sample``
+    ``ranked_logits`` holds each row's full vocabulary of logits in decreasing
+    order. Rows in ``skip_mask`` get the token ``gumbel_sample``
     draws from ``logits`` with the given sampler inputs instead."""
     sample_plain = skip_mask is not None
     assert not sample_plain or expanded_idx_mapping is not None
@@ -1206,7 +1206,6 @@ def philox_ppl_soft_sample(
         thresholds,
         with_mass=False,
         with_best=True,
-        cap=ranked_logits[:, -1].contiguous(),
         plogp_floor=1e-12,
         plogp_support_only=True,
         skip_mask=skip_mask,

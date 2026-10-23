@@ -350,9 +350,8 @@ token (default 0):
   `beta` is found at every step by bisection over 128 Monte Carlo draws of
   the token scores. The draws are derived from the context with a public
   key, so they repeat with the context and do not depend on the rest of the
-  batch. Only the 4096 most probable tokens are drawn and can be selected,
-  so with `top_k` of at most 4096 this matches the reference
-  implementation, which uses every token.
+  batch. Both the Monte Carlo draws and final selection use every token
+  permitted by the request's sampling settings; no internal top-k cap is applied.
 
 ```bash
 vllm serve MODEL \

@@ -19,10 +19,6 @@ from vllm.v1.watermarking.prfs import PhiloxPRF, WatermarkPRF
 from vllm.v1.watermarking.watermarker import RandomSampler, WatermarkSample
 
 _MONTE_CARLO_KEY = 0x50504C5F4D435F31  # Public: the draws need no secrecy.
-# The Monte Carlo draws score this many of the most probable tokens. Less
-# probable tokens outscore the top ones only for very flat distributions, and
-# sorting just these is much cheaper.
-_NUM_RANKED_TOKENS = 4096
 # The bisection for beta, as in the reference: 60 steps over [0, 100].
 _BETA_MAX = 1e2
 _BISECTION_STEPS = 60
@@ -440,8 +436,8 @@ class PPLSoftWatermarker(BinomialScoreWatermarker):
     makes the selected token's log-probability average ``p . log p - epsilon``
     over random scores, estimated from ``n_mc`` Monte Carlo draws of the
     scores. A public PRF derives the draws from the context, so they are new
-    for every new context. Only the 4096 most probable tokens are drawn
-    and selected from; the target still uses the whole distribution.
+    for every new context. Both the draws and final selection use the full
+    sampling support.
     """
 
     def __init__(
@@ -492,8 +488,8 @@ class PPLSoftWatermarker(BinomialScoreWatermarker):
             log_probs: float32 [num_rows, vocab_size] log-probabilities
             contexts: [num_rows, context_width] contexts, keying the MC draws
             max_iter: bisection iterations
-            ranked: each row's ``min(vocab_size, 4096)`` largest
-                log-probabilities in decreasing order, if already computed
+            ranked: each row's log-probabilities in decreasing order,
+                if already computed
 
         Returns:
             beta: [num_rows]
@@ -511,9 +507,9 @@ class PPLSoftWatermarker(BinomialScoreWatermarker):
         # anew at every step. Only the first token with each score can win
         # s.argmax, so each draw is made as those tokens' ranks, and the
         # bisection compares just their log-probabilities.
-        width = min(vocab_size, _NUM_RANKED_TOKENS)
+        width = vocab_size
         if ranked is None:
-            ranked = log_probs.topk(width, dim=-1).values
+            ranked = log_probs.sort(dim=-1, descending=True).values
         if log_probs.device.type == "cuda":
             from vllm.v1.worker.gpu.sample.binomial_watermark import (
                 monte_carlo_bisection,
@@ -574,9 +570,8 @@ class PPLSoftWatermarker(BinomialScoreWatermarker):
 
         # _sample_watermarked in a few kernels, with the plain samples of the
         # rows in skip_mask drawn in the same pass over the vocabulary.
-        width = min(logits.shape[-1], _NUM_RANKED_TOKENS)
         logits_f32 = logits.float()
-        ranked = logits_f32.topk(width, dim=-1).values
+        ranked = logits_f32.sort(dim=-1, descending=True).values
         sampler: dict = {}
         if random_sampler is not None:
             sampler = dict(
@@ -609,12 +604,8 @@ class PPLSoftWatermarker(BinomialScoreWatermarker):
         contexts: torch.Tensor,
     ) -> WatermarkSample:
         log_probs = logits.float().log_softmax(dim=-1)
-        width = min(log_probs.shape[-1], _NUM_RANKED_TOKENS)
-        ranked = log_probs.topk(width, dim=-1).values
+        ranked = log_probs.sort(dim=-1, descending=True).values
         beta = self.find_beta_for_logp_constraint(log_probs, contexts, ranked=ranked)
-
-        # Select among the tokens the draws score.
-        log_probs = log_probs.masked_fill(log_probs < ranked[:, -1:], float("-inf"))
 
         # argmax_u scores_u + beta * log(max(p_u, 1e-12)) is the most probable
         # token of the score s maximizing s + beta * log(max(p_s, 1e-12)).
