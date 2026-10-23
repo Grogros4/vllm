@@ -146,8 +146,7 @@ class SynthIDWatermarker(Watermarker):
         contexts: torch.Tensor,
         skip_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        """Return float32 logits of the tournament winner's distribution for
-        every row not in ``skip_mask``; they are -inf outside its candidates."""
+        """Watermark the candidates, preserving their mass and the tail."""
         log_probs = logits.float().log_softmax(dim=-1)
         num_candidates = min(log_probs.shape[-1], NUM_CANDIDATES)
         candidate_log_probs, candidate_ids = log_probs.topk(num_candidates, dim=-1)
@@ -168,8 +167,9 @@ class SynthIDWatermarker(Watermarker):
         else:
             g = g_values(self.prfs, contexts, candidate_ids, self.depth)
             winner_log_probs = _tournament(candidate_log_probs, g, self.num_leaves)
-        watermarked = torch.full_like(log_probs, float("-inf")).scatter_(
-            1, candidate_ids, winner_log_probs
+        head_log_mass = candidate_log_probs.logsumexp(dim=-1, keepdim=True)
+        watermarked = log_probs.scatter(
+            1, candidate_ids, winner_log_probs + head_log_mass
         )
         if skip_mask is not None:
             watermarked = torch.where(

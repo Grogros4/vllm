@@ -8,9 +8,11 @@ import math
 import torch
 
 from vllm.triton_utils import tl, tldevice, triton
+from vllm.v1.watermarking.gaussian_copula import NUM_CANDIDATES
 from vllm.v1.watermarking.prfs.philox import _UINT32_MASK
 from vllm.v1.worker.gpu.sample.gumbel import (
     gumbel_noised_argmax,
+    gumbel_sample,
     murmur3_uniform32,
     murmur3_uniform64,
 )
@@ -47,6 +49,7 @@ def _philox_gaussian_copula_kernel(
     local_max_stride,
     logits_ptr,
     logits_stride,
+    candidate_ids_ptr,
     contexts_ptr,
     context_stride,
     skip_mask_ptr,
@@ -62,12 +65,19 @@ def _philox_gaussian_copula_kernel(
     CONTEXT_WIDTH: tl.constexpr,
     BLOCK_SIZE: tl.constexpr,
     USE_FP64: tl.constexpr,
+    HAS_CANDIDATES: tl.constexpr,
 ):
     tl.static_assert(BLOCK_SIZE % 4 == 0)
     row = tl.program_id(0).to(tl.int64)
     block_index = tl.program_id(1)
-    candidate = block_index * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
-    mask = candidate < vocab_size
+    offset = block_index * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
+    mask = offset < vocab_size
+    if HAS_CANDIDATES:
+        candidate = tl.load(
+            candidate_ids_ptr + row * vocab_size + offset, mask=mask, other=0
+        )
+    else:
+        candidate = offset
 
     req_state_idx = tl.load(expanded_idx_mapping_ptr + row).to(tl.int64)
     valid_req = req_state_idx >= 0
@@ -75,8 +85,10 @@ def _philox_gaussian_copula_kernel(
     seed = tl.load(seeds_ptr + req_state_idx, mask=valid_req, other=0)
     pos = tl.load(pos_ptr + row)
     logits = tl.load(
-        logits_ptr + row * logits_stride + candidate, mask=mask, other=float("-inf")
+        logits_ptr + row * logits_stride + offset, mask=mask, other=float("-inf")
     ).to(tl.float32)
+    if USE_FP64:
+        logits = logits.to(tl.float64)
 
     if tl.load(skip_mask_ptr + row):
         # Sampled without the watermark, as gumbel_sample.
@@ -97,23 +109,33 @@ def _philox_gaussian_copula_kernel(
         state_0, state_1, state_2, state_3 = _philox_context_state(
             contexts_ptr + row * context_stride, key_0, key_1, CONTEXT_WIDTH
         )
-        groups = block_index * (BLOCK_SIZE // 4) + tl.arange(0, BLOCK_SIZE // 4)
+        if HAS_CANDIDATES:
+            groups = candidate >> 2
+            # Independent of the full-vocabulary draw that chooses head/tail.
+            seed = seed ^ 0x434F50554C4131
+        else:
+            groups = block_index * (BLOCK_SIZE // 4) + tl.arange(0, BLOCK_SIZE // 4)
         output_0, output_1, output_2, output_3 = _philox_candidate_words(
             groups, state_0, state_1, state_2, state_3, key_0, key_1
         )
-        # Lay the per-group words out in token order: 4g+0, 4g+1, 4g+2, 4g+3.
-        u = _uint32_to_uniform(
-            tl.interleave(
+        if HAS_CANDIDATES:
+            word = candidate & 3
+            output = tl.where(
+                word == 0,
+                output_0,
+                tl.where(word == 1, output_1, tl.where(word == 2, output_2, output_3)),
+            )
+        else:
+            # Lay the per-group words out in token order: 4g+0, ..., 4g+3.
+            output = tl.interleave(
                 tl.interleave(output_0, output_2),
                 tl.interleave(output_1, output_3),
             )
-        )
-        # The fresh noise is the request's own sampling noise for the token,
-        # oriented as gumbel_sample orients it, so that with a vanishing
-        # correlation the token is the one gumbel_sample draws.
+        u = _uint32_to_uniform(output)
+        # Without a candidate cap, vanishing correlation recovers the plain
+        # sample. Capped head races use an independent stream instead.
         if USE_FP64:
             noise = tldevice.normcdfinv(murmur3_uniform64(seed, pos, candidate))
-            logits = logits.to(tl.float64)
             u = u.to(tl.float64)
         else:
             # murmur3_uniform32 can round to 1, where gumbel_sample bounds 1 - u
@@ -129,9 +151,12 @@ def _philox_gaussian_copula_kernel(
             float("-inf"),
         )
         value, index = tl.max(values, axis=0, return_indices=True)
+    index = block_index * BLOCK_SIZE + index
+    if HAS_CANDIDATES:
+        index = tl.load(candidate_ids_ptr + row * vocab_size + index)
     tl.store(
         local_argmax_ptr + row * local_argmax_stride + block_index,
-        block_index * BLOCK_SIZE + index,
+        index,
     )
     tl.store(local_max_ptr + row * local_max_stride + block_index, value)
 
@@ -151,6 +176,20 @@ def philox_gaussian_copula_sample(
     """The token ``GaussianCopulaWatermarker`` samples in each row of
     temperature-scaled ``logits``, with the fresh noise of the given sampler
     inputs; rows in ``skip_mask`` get the token ``gumbel_sample`` draws."""
+    candidate_ids = None
+    plain = None
+    if logits.shape[-1] > NUM_CANDIDATES:
+        plain = gumbel_sample(
+            logits,
+            expanded_idx_mapping,
+            temperatures,
+            seeds,
+            positions,
+            apply_temperature=False,
+            is_drafting=False,
+            use_fp64=use_fp64,
+        )
+        logits, candidate_ids = logits.topk(NUM_CANDIDATES, dim=-1, sorted=False)
     if logits.stride(-1) != 1:
         logits = logits.contiguous()
     if contexts.stride(-1) != 1:
@@ -174,6 +213,7 @@ def philox_gaussian_copula_sample(
         local_max.stride(0),
         logits,
         logits.stride(0),
+        candidate_ids,
         contexts,
         contexts.stride(0),
         skip_mask,
@@ -189,6 +229,12 @@ def philox_gaussian_copula_sample(
         CONTEXT_WIDTH=contexts.shape[-1],
         BLOCK_SIZE=block_size,
         USE_FP64=use_fp64,
+        HAS_CANDIDATES=candidate_ids is not None,
     )
     max_block_index = local_max.argmax(dim=-1, keepdim=True)
-    return local_argmax.gather(dim=-1, index=max_block_index).view(-1)
+    token_ids = local_argmax.gather(dim=-1, index=max_block_index).view(-1)
+    if candidate_ids is not None:
+        assert plain is not None
+        in_head = (candidate_ids == plain.unsqueeze(-1)).any(dim=-1)
+        token_ids = torch.where(in_head & ~skip_mask, token_ids, plain)
+    return token_ids

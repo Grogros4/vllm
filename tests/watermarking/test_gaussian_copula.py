@@ -44,6 +44,15 @@ def test_detector_scores_each_distinct_pair_once():
     assert targets.tolist() == [5, 3, 7]
 
 
+def test_detector_reports_the_uncorrected_gamma_tail():
+    detector = GaussianCopulaWatermarkDetector(key=42, context_width=2)
+    result = detector.detect(list(range(30)))
+
+    assert result.p_value == pytest.approx(
+        stats.gamma.sf(result.score, result.num_scored_tokens), rel=1e-10
+    )
+
+
 @pytest.mark.parametrize("correlation", [0.3, 0.98551, 1.0])
 def test_gumbels_are_standard_gumbel(correlation: float):
     """Every z is standard normal, so the noise is Gumbel(0, 1) and the
@@ -67,7 +76,11 @@ def _distinct_contexts(num_rows: int) -> torch.Tensor:
 _PROBS = torch.tensor([0.4, 0.25, 0.15, 0.1, 0.06, 0.04])
 
 
-def test_sample_follows_the_model_distribution():
+@pytest.mark.parametrize("candidate_limit", [3, 4096])
+def test_sample_follows_the_model_distribution(monkeypatch, candidate_limit):
+    monkeypatch.setattr(
+        "vllm.v1.watermarking.gaussian_copula.NUM_CANDIDATES", candidate_limit
+    )
     num_rows = 20_000
     watermarker = GaussianCopulaWatermarker(key=42, context_width=2)
 
@@ -142,7 +155,7 @@ def _kernel_inputs(num_rows: int = 32, vocab_size: int = 5_000):
 def test_kernel_with_full_correlation_matches_the_reference():
     """With correlation 1 the noise is fully keyed."""
     watermarker = GaussianCopulaWatermarker(key=42, context_width=2, correlation=1.0)
-    logits, contexts = _kernel_inputs()
+    logits, contexts = _kernel_inputs(vocab_size=1000)
 
     sample = watermarker.sample(logits.cuda(), contexts.cuda(), _random_sampler(32))
 
@@ -158,7 +171,7 @@ def test_kernel_draws_the_plain_sample_without_watermark():
     """The fresh noise is the request's own sampling noise: rows without a full
     context, and every row at a vanishing correlation, get the token the plain
     sampler draws."""
-    logits, contexts = _kernel_inputs()
+    logits, contexts = _kernel_inputs(vocab_size=1000)
     logits, contexts = logits.cuda(), contexts.cuda()
     contexts[-4:, 0] = -1
     random_sampler = _random_sampler(32)
@@ -176,7 +189,12 @@ def test_kernel_draws_the_plain_sample_without_watermark():
 
 
 @requires_cuda
-def test_kernel_samples_follow_the_model_distribution():
+@pytest.mark.parametrize("candidate_limit", [3, 4096])
+def test_kernel_samples_follow_the_model_distribution(monkeypatch, candidate_limit):
+    monkeypatch.setattr(
+        "vllm.v1.worker.gpu.sample.gaussian_copula_watermark.NUM_CANDIDATES",
+        candidate_limit,
+    )
     num_rows = 20_000
     watermarker = GaussianCopulaWatermarker(key=42, context_width=2)
 
@@ -188,3 +206,30 @@ def test_kernel_samples_follow_the_model_distribution():
 
     counts = torch.bincount(sample.token_ids.cpu(), minlength=len(_PROBS))
     assert stats.chisquare(counts.numpy(), num_rows * _PROBS.numpy()).pvalue > 1e-3
+
+
+@requires_cuda
+@pytest.mark.parametrize("use_fp64", [False, True])
+def test_capped_kernel_keeps_plain_tail_and_keys_only_head_tokens(use_fp64):
+    watermarker = GaussianCopulaWatermarker(key=42, context_width=2, correlation=1.0)
+    logits, contexts = _kernel_inputs(num_rows=128, vocab_size=8192)
+    # A substantial tail makes this check independent of rare random events.
+    logits = logits / 6
+    sampler = _random_sampler(128)
+    if use_fp64:
+        from dataclasses import replace
+
+        sampler = replace(sampler, use_fp64=True)
+    plain = sampler(logits.cuda()).cpu()
+    head_logits, head_ids = logits.topk(4096, dim=-1)
+    in_head = (head_ids == plain.unsqueeze(-1)).any(dim=-1)
+    assert in_head.any() and (~in_head).any()
+    uniforms = watermarker.prf.uniform(contexts, head_ids).double()
+    noise = gumbels(uniforms, torch.zeros_like(uniforms), 1.0)
+    winners = head_ids.gather(-1, (head_logits + noise).argmax(-1, keepdim=True))[:, 0]
+    skip = torch.arange(128, device="cuda") % 7 == 0
+
+    sample = watermarker.sample(logits.cuda(), contexts.cuda(), sampler, skip)
+
+    expected = torch.where(in_head & ~skip.cpu(), winners, plain)
+    assert torch.equal(sample.token_ids.cpu(), expected)
