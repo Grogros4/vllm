@@ -99,6 +99,31 @@ def test_watermark_logits_keep_skipped_rows_and_filtered_tokens():
     assert torch.equal(sample.token_ids, sample.logits.argmax(dim=-1))
 
 
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_candidate_cap_preserves_tail_probabilities_and_head_mass(device):
+    if device == "cuda" and not current_platform.is_cuda_alike():
+        pytest.skip("requires a CUDA-like accelerator")
+    watermarker = SynthIDWatermarker(key=42, context_width=2, depth=8)
+    generator = torch.Generator().manual_seed(5)
+    logits = torch.randn(3, 8192, generator=generator).to(device)
+    logits[:, :4] = -float("inf")
+    contexts = torch.tensor([[1, 2], [3, 4], [5, 6]], device=device)
+    skip = torch.tensor([False, True, False], device=device)
+    head_ids = logits.topk(4096, dim=-1).indices
+    tail = torch.ones_like(logits, dtype=torch.bool).scatter_(-1, head_ids, False)
+
+    output = watermarker.watermark_logits(logits, contexts, skip)
+
+    original = logits.softmax(-1)
+    actual = output.softmax(-1)
+    torch.testing.assert_close(actual[tail], original[tail], atol=1e-8, rtol=1e-5)
+    torch.testing.assert_close(
+        actual.gather(-1, head_ids).sum(-1), original.gather(-1, head_ids).sum(-1)
+    )
+    assert torch.equal(output[1], logits[1])
+    assert torch.isneginf(output[:, :4]).all()
+
+
 def test_detector_recognizes_watermarked_tokens():
     watermarker = SynthIDWatermarker(key=42, context_width=2)
     generator = torch.Generator().manual_seed(3)

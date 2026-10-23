@@ -1897,8 +1897,8 @@
         "is_watermarked": true,
         "message": null,
         "num_scored_tokens": 62,
-        "p_value": 2.9894237360168832e-46,
-        "p_value_ratio": 2.9894237360168833e-44,
+        "p_value": 1.4947118680084416e-47,
+        "p_value_ratio": 1.4947118680084415e-45,
         "score": 252.85730212643278
       },
       "generation": [
@@ -1980,7 +1980,7 @@
           "g_value_prf_keys": null,
           "gamma": null,
           "key_b_prf_key": null,
-          "key_safety": 20.0,
+          "key_safety": null,
           "message_bits": null,
           "num_trials": null,
           "p_value_threshold": 0.01,
@@ -2059,8 +2059,8 @@
         "is_watermarked": true,
         "message": null,
         "num_scored_tokens": 60,
-        "p_value": 3.1327656470545743e-17,
-        "p_value_ratio": 3.1327656470545742e-15,
+        "p_value": 1.5663828235272873e-18,
+        "p_value_ratio": 1.5663828235272872e-16,
         "score": 154.19468799074465
       },
       "generation": [
@@ -2142,7 +2142,7 @@
           "g_value_prf_keys": null,
           "gamma": null,
           "key_b_prf_key": null,
-          "key_safety": 20.0,
+          "key_safety": null,
           "message_bits": null,
           "num_trials": null,
           "p_value_threshold": 0.01,

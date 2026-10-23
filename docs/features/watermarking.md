@@ -474,7 +474,9 @@ A layer replaces the distribution with that of the winner of a match between
 `num_leaves` (default 2) independent draws, where draws with g-value 1 beat
 those with 0. Sampling draws from the distribution after all layers, computed
 in closed form over each row's 4096 most probable tokens after temperature
-scaling and top-k/top-p filtering. With two leaves the watermark leaves the
+scaling and top-k/top-p filtering. The tournament preserves this subset's
+original probability mass; tokens outside it keep their original probabilities.
+With two leaves the watermark leaves the
 output distribution unchanged on average over keys; more leaves strengthen it
 at the cost of distortion:
 
@@ -504,7 +506,10 @@ and the sampled token maximizes its log-probability plus `-log(-log Phi(z))`.
 Each `z` is standard normal, so tokens follow the model's distribution after
 temperature scaling and top-k/top-p filtering, while tokens with a high `U` are
 favored. `correlation` defaults to 0.98551, AutoMark's value matching the
-quality of TextSeal at alpha 0.1; at 1 the noise is fully keyed.
+quality of TextSeal at alpha 0.1; at 1 the noise is fully keyed. Only the 4096
+most probable tokens receive keyed noise. An independent plain draw chooses
+between this subset and the tail with their original probabilities; tail tokens
+are sampled unchanged.
 
 The context is the last `context_width` tokens, and AutoMark uses 2. The first
 `context_width` tokens of an output, whose context reaches before it, are
@@ -518,8 +523,8 @@ vllm serve MODEL \
 ```
 
 Detection scores every distinct (context, token) pair once, sums
-`-log(1 - U)`, and reports the Gamma tail probability of the sum, multiplied by
-`key_safety` (default 20, as in the reference implementation) and capped at 1:
+`-log(1 - U)`, and reports the Gamma tail probability of the sum, assuming ideal
+independent PRF uniforms as in the other schemes. No ×20 correction is applied:
 
 ```python
 from vllm.v1.watermarking import GaussianCopulaWatermarkDetector
